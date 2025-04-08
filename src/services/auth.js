@@ -1,63 +1,57 @@
+import { vintraApi } from './api';
+
 /**
  * Auth Service
  * In a real application, this would make API calls to a backend server.
- * For the demo version, we're simulating authentication.
  */
-
-// Mock credentials for demo
-const DEMO_PASSWORD = '123'; // Keeping same as original for demo
-const DEMO_USER = {
-  id: 'user-1',
-  name: 'Demonstração',
-  role: 'clinician',
-  avatar: 'D'
-};
 
 export const authService = {
   /**
-   * Simulated login function
+   * Login function using real API
    * @param {string} password - User password
    * @returns {Promise<Object|null>} - User data or null if login fails
    */
   login: async (password) => {
-    // Simulate API call
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (password === DEMO_PASSWORD) {
-          resolve(DEMO_USER);
-        } else {
-          reject(new Error('Senha incorreta. Por favor, tente novamente.'));
-        }
-      }, 800); // Simulate network delay
-    });
+    try {
+      const response = await vintraApi.login(password);
+      const { user, token } = response;
+      localStorage.setItem('vintra_token', token);
+      return user;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Falha na autenticação');
+    }
   },
 
   /**
-   * Verify auth token validity (simulated)
+   * Verify auth token validity using real API
    * @param {string} token - Authentication token
    * @returns {Promise<boolean>} - Token validity
    */
   verifyToken: async (token) => {
-    // In a real app, this would validate the token with the server
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(!!token); // Simply check if token exists for demo
-      }, 300);
-    });
+    try {
+      await vintraApi.login({ token }); // Verifica se o token é válido
+      return true;
+    } catch {
+      return false;
+    }
   },
 
   /**
-   * Get current user info (simulated)
+   * Get current user info using real API
    * @returns {Promise<Object|null>} - User data or null if not logged in
    */
   getCurrentUser: async () => {
-    // In a real app, this would make an API call with the stored token
-    const storedUser = localStorage.getItem('vintra_user');
-    
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(storedUser ? JSON.parse(storedUser) : null);
-      }, 300);
-    });
+    const token = localStorage.getItem('vintra_token');
+    if (!token) return null;
+
+    try {
+      const storedUser = localStorage.getItem('vintra_user');
+      if (storedUser) {
+        return JSON.parse(storedUser);
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 };

@@ -1,42 +1,164 @@
 // src/pages/NewConsultation.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import Button from '../components/common/Button';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../hooks/useUI';
+import { useAudioRecorder } from '../hooks/useAudioRecorder';
+import { processConsultationAudio } from '../components/recording/AudioProcessor';
+import { vintraApi } from '../services/api';
 
 const NewConsultation = () => {
   const [activeTab, setActiveTab] = useState('record');
-  const [recording, setRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState('00:00:00');
+  const { showSuccess, showError } = useUI();
   const navigate = useNavigate();
-  const { showSuccess } = useUI();
+  const {
+    isRecording,
+    audioURL,
+    recordingTime,
+    startRecording,
+    stopRecording,
+    resetRecording
+  } = useAudioRecorder();
 
-  // Simula iniciar/parar a gravação
-  const toggleRecording = () => {
-    if (!recording) {
-      setRecording(true);
-      // Simulação de tempo decorrido (em uma app real, isso seria um timer real)
-      setRecordingTime('00:00:01');
-      setTimeout(() => {
-        if (recording) setRecordingTime('00:01:23');
-      }, 1000);
+  const canvasRef = useRef(null);
+  const [_visualizerData, _setVisualizerData] = useState(new Uint8Array(0));
+  const [loading, setLoading] = useState(false);
+  const [manualText, setManualText] = useState('');
+  const [manualLoading, setManualLoading] = useState(false);
+
+  const toggleRecording = async () => {
+    if (!isRecording) {
+      try {
+        await startRecording();
+        // Configurar visualizador de áudio
+        setupAudioVisualizer();
+      } catch (error) {
+        showError('Erro', 'Não foi possível iniciar a gravação. Verifique as permissões do microfone.');
+      }
     } else {
-      setRecording(false);
-      // Simula a finalização da gravação e navegação para documentação
-      setTimeout(() => {
-        showSuccess('Gravação Concluída', 'Áudio processado com sucesso.');
-        navigate('/documentation');
-      }, 1500);
+      stopRecording();
+      // Limpar visualizador
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
     }
   };
 
-  // Simula o upload de arquivo
-  const handleUpload = () => {
-    showSuccess('Upload Concluído', 'Arquivo processado com sucesso.');
-    setTimeout(() => {
-      navigate('/documentation');
-    }, 1000);
+  const setupAudioVisualizer = async () => {
+    if (!canvasRef.current) return;
+
+    const audioContext = new AudioContext();
+    const analyser = audioContext.createAnalyser();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const source = audioContext.createMediaStreamSource(stream);
+    
+    source.connect(analyser);
+    analyser.fftSize = 256;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const draw = () => {
+      if (!canvasRef.current) return;
+      
+      const ctx = canvasRef.current.getContext('2d');
+      const width = canvasRef.current.width;
+      const height = canvasRef.current.height;
+      
+      analyser.getByteFrequencyData(dataArray);
+      ctx.fillStyle = 'rgba(250, 250, 252, 0.2)';
+      ctx.fillRect(0, 0, width, height);
+      
+      const barWidth = (width / bufferLength) * 2.5;
+      let x = 0;
+      
+      dataArray.forEach((value) => {
+        const barHeight = (value / 255) * height;
+        ctx.fillStyle = `rgba(6, 182, 212, ${value / 255})`;
+        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+        x += barWidth + 1;
+      });
+      
+      if (isRecording) {
+        requestAnimationFrame(draw);
+      }
+    };
+
+    draw();
+  };
+
+  const handleSubmitRecording = async () => {
+    if (!audioURL) {
+      showError('Erro', 'Nenhum áudio disponível para processar.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Obter o blob do áudio da URL
+      const response = await fetch(audioURL);
+      const audioBlob = await response.blob();
+
+      // Processar o áudio
+      const options = {
+        diarization: document.getElementById('diarization').checked
+      };
+
+      const { consultationId } = await processConsultationAudio(audioBlob, options);
+      
+      showSuccess('Áudio Enviado', 'Consulta enviada para processamento com sucesso.');
+      navigate('/processing', { state: { consultationId } });
+    } catch (error) {
+      showError('Erro', error.message || 'Falha ao processar o áudio.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const options = {
+        diarization: document.getElementById('uploadDiarization').checked,
+        autoProcess: document.getElementById('uploadAutoDocs').checked
+      };
+
+      const { consultationId } = await processConsultationAudio(file, options);
+      
+      showSuccess('Upload Concluído', 'Arquivo enviado para processamento com sucesso.');
+      navigate('/processing', { state: { consultationId } });
+    } catch (error) {
+      showError('Erro', error.message || 'Falha ao fazer upload do arquivo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManualSubmit = async () => {
+    if (!manualText.trim()) {
+      showError('Erro', 'Digite ou cole o texto da consulta primeiro.');
+      return;
+    }
+
+    setManualLoading(true);
+    try {
+      const response = await vintraApi.saveDocument({
+        type: 'transcription',
+        content: manualText,
+        method: 'manual'
+      });
+
+      showSuccess('Texto Processado', 'Consulta registrada com sucesso.');
+      navigate('/processing', { state: { consultationId: response.consultationId } });
+    } catch (error) {
+      showError('Erro', error.message || 'Falha ao processar o texto.');
+    } finally {
+      setManualLoading(false);
+    }
   };
 
   return (
@@ -83,42 +205,60 @@ const NewConsultation = () => {
             </ModuleHeader>
             
             <RecordingControls>
-              <RecordButton recording={recording} onClick={toggleRecording}>
-                <i className={`fas ${recording ? 'fa-stop' : 'fa-microphone'}`}></i>
+              <RecordButton recording={isRecording} onClick={toggleRecording}>
+                <i className={`fas ${isRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
               </RecordButton>
+              
+              {audioURL && !isRecording && (
+                <AudioPreview controls src={audioURL} />
+              )}
             </RecordingControls>
             
             <RecordingInfo>
               <RecordingTime>{recordingTime}</RecordingTime>
               <RecordingStatus>
-                {recording ? 'Gravando...' : 'Pronto para gravar'}
+                {isRecording ? 'Gravando...' : audioURL ? 'Gravação concluída' : 'Pronto para gravar'}
               </RecordingStatus>
             </RecordingInfo>
             
-            <Visualizer recording={recording}>
-              {recording ? (
-                <WaveformAnimated>
-                  {Array(20).fill().map((_, i) => (
-                    <WaveBar key={i} />
-                  ))}
-                </WaveformAnimated>
-              ) : (
-                <p>Visualizador de áudio será exibido durante a gravação</p>
-              )}
+            <Visualizer>
+              <VisualizerCanvas ref={canvasRef} />
             </Visualizer>
             
             <OptionCheckbox>
               <input type="checkbox" id="diarization" defaultChecked />
               <label htmlFor="diarization">Habilitar Diarização (separa as vozes do médico e paciente)</label>
             </OptionCheckbox>
-            
-            <OptionCheckbox>
-              <input type="checkbox" id="autoDocs" defaultChecked />
-              <label htmlFor="autoDocs">Gerar documentação automaticamente após gravação</label>
-            </OptionCheckbox>
+
+            {audioURL && !isRecording && (
+              <ButtonContainer>
+                <Button 
+                  variant="secondary" 
+                  onClick={resetRecording}
+                  disabled={loading}
+                >
+                  <i className="fas fa-redo"></i> Nova Gravação
+                </Button>
+                <Button 
+                  variant="primary" 
+                  onClick={handleSubmitRecording}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <i className="fas fa-circle-notch fa-spin"></i> Processando...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-arrow-right"></i> Processar Gravação
+                    </>
+                  )}
+                </Button>
+              </ButtonContainer>
+            )}
           </Module>
         )}
-        
+
         {activeTab === 'upload' && (
           <Module>
             <ModuleHeader>
@@ -126,21 +266,35 @@ const NewConsultation = () => {
               <ModuleSubtitle>Carregue um arquivo de áudio de uma consulta prévia</ModuleSubtitle>
             </ModuleHeader>
             
-            <UploadArea onClick={handleUpload}>
-              <UploadIcon>
-                <i className="fas fa-cloud-upload-alt"></i>
-              </UploadIcon>
-              <p>Arraste o arquivo ou clique para selecionar</p>
-              <UploadHint>Suporta áudio (MP3, WAV, M4A)</UploadHint>
+            <UploadArea>
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={handleUpload}
+                style={{ display: 'none' }}
+                id="audioUpload"
+                disabled={loading}
+              />
+              <label htmlFor="audioUpload" style={{ cursor: 'pointer', width: '100%', height: '100%' }}>
+                <UploadIcon>
+                  {loading ? (
+                    <i className="fas fa-circle-notch fa-spin"></i>
+                  ) : (
+                    <i className="fas fa-cloud-upload-alt"></i>
+                  )}
+                </UploadIcon>
+                <p>{loading ? 'Processando...' : 'Arraste o arquivo ou clique para selecionar'}</p>
+                <UploadHint>Suporta áudio (MP3, WAV, M4A)</UploadHint>
+              </label>
             </UploadArea>
             
             <OptionCheckbox>
-              <input type="checkbox" id="uploadDiarization" defaultChecked />
+              <input type="checkbox" id="uploadDiarization" defaultChecked disabled={loading} />
               <label htmlFor="uploadDiarization">Habilitar Diarização (separa as vozes do médico e paciente)</label>
             </OptionCheckbox>
             
             <OptionCheckbox>
-              <input type="checkbox" id="uploadAutoDocs" defaultChecked />
+              <input type="checkbox" id="uploadAutoDocs" defaultChecked disabled={loading} />
               <label htmlFor="uploadAutoDocs">Gerar documentação automaticamente após processamento</label>
             </OptionCheckbox>
           </Module>
@@ -156,22 +310,34 @@ const NewConsultation = () => {
             <TextareaContainer>
               <Textarea 
                 placeholder="Digite ou cole o texto da consulta aqui... 
-                
+
 Exemplo:
 Dr: Como está se sentindo hoje?
 Paciente: Tenho sentido dores na região lombar há cerca de duas semanas.
 Dr: Essa dor irradia para outras partes do corpo?
 ..." 
                 rows={12}
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+                disabled={manualLoading}
               />
             </TextareaContainer>
             
             <ButtonContainer>
-              <Button variant="primary" onClick={() => {
-                showSuccess('Texto Processado', 'Consulta registrada com sucesso.');
-                setTimeout(() => navigate('/documentation'), 1000);
-              }}>
-                <i className="fas fa-file-medical"></i> Processar Consulta
+              <Button 
+                variant="primary" 
+                onClick={handleManualSubmit}
+                disabled={manualLoading}
+              >
+                {manualLoading ? (
+                  <>
+                    <i className="fas fa-circle-notch fa-spin"></i> Processando...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-file-medical"></i> Processar Consulta
+                  </>
+                )}
               </Button>
             </ButtonContainer>
           </Module>
@@ -346,27 +512,16 @@ const Visualizer = styled.div`
   border: 1px solid ${props => props.recording ? 'var(--teal-200)' : 'transparent'};
 `;
 
-const WaveformAnimated = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const VisualizerCanvas = styled.canvas`
   width: 100%;
-  height: 100%;
+  height: 120px;
+  background-color: var(--surface-white);
+  border-radius: var(--radius-lg);
 `;
 
-const WaveBar = styled.div`
-  width: 3px;
-  background-color: var(--teal-400);
-  border-radius: var(--radius-full);
-  height: 30%;
-  animation: waveform 1s ease-in-out infinite;
-  animation-delay: ${() => Math.random() * 1}s;
-  
-  @keyframes waveform {
-    0% { height: 30%; }
-    50% { height: 70%; }
-    100% { height: 30%; }
-  }
+const AudioPreview = styled.audio`
+  width: 100%;
+  margin-top: var(--space-4);
 `;
 
 const OptionCheckbox = styled.div`
@@ -445,7 +600,9 @@ const Textarea = styled.textarea`
 
 const ButtonContainer = styled.div`
   display: flex;
-  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  justify-content: flex-end;
 `;
 
 export default NewConsultation;

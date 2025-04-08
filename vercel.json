@@ -1,7 +1,26 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "/backend/src/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
+  "functions": {
+    "backend/src/api/**/*.js": {
+      "memory": 3008,
+      "maxDuration": 300
+    }
+  },
+  "env": {
+    "VITE_API_URL": "/api"
+  },
   "headers": [
     {
       "source": "/(.*).(js|css|svg|jpg|png|gif|ico|json)",

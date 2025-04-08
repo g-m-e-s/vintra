@@ -1,33 +1,76 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip, Legend } from 'recharts';
+import { LineChart, Line, CartesianGrid, XAxis, YAxis } from 'recharts';
+import Button from '../common/Button';
 
-/**
- * Modal for dimensional visualizations
- */
-const DimensionalModal = ({ patientData, onClose }) => {
+const DimensionalModal = ({ _patientData, onClose }) => {
   const [activeView, setActiveView] = useState('radar');
+  const [dimensionalData] = useState({
+    cognitiva: {
+      atencao: 15,
+      memoria: 16,
+      raciocinio: 14,
+      dissonancia: 12
+    },
+    afetiva: {
+      ansiedade: 13,
+      humor: 15,
+      afeto: 17
+    },
+    autonomia: {
+      autocontrole: 14,
+      perspectivaTemporal: {
+        passado: 12,
+        presente: 15,
+        futuro: 16,
+        media: 14.3
+      }
+    },
+    social: {
+      relacionamentos: 16,
+      trabalho: 13,
+      lazer: 15
+    }
+  });
 
-  // Example dimensional data
-  const dimensionalData = patientData || {
-    emocional: { valencia: -2.5, excitacao: 7.0, dominancia: 3.0, intensidade: 8.0 },
-    cognitiva: { complexidade: 6.0, coerencia: 5.0, flexibilidade: 4.0, dissonancia: 7.0 },
-    autonomia: { perspectivaTemporal: { passado: 7.0, presente: 3.0, futuro: 2.0, media: 4.0 }, autocontrole: 4.0 }
-  };
-
-  // Prepare radar chart data
   const radarData = [
-    { dimension: 'Valência', value: dimensionalData.emocional.valencia + 10 }, // Offset to make negative values visible
-    { dimension: 'Excitação', value: dimensionalData.emocional.excitacao },
-    { dimension: 'Dominância', value: dimensionalData.emocional.dominancia },
-    { dimension: 'Intensidade', value: dimensionalData.emocional.intensidade },
-    { dimension: 'Complexidade', value: dimensionalData.cognitiva.complexidade },
-    { dimension: 'Coerência', value: dimensionalData.cognitiva.coerencia },
-    { dimension: 'Flexibilidade', value: dimensionalData.cognitiva.flexibilidade },
-    { dimension: 'Dissonância', value: dimensionalData.cognitiva.dissonancia },
-    { dimension: 'Persp. Temporal', value: dimensionalData.autonomia.perspectivaTemporal.media },
-    { dimension: 'Autocontrole', value: dimensionalData.autonomia.autocontrole }
+    { dimension: 'Cognitivo', value: dimensionalData.cognitiva.raciocinio },
+    { dimension: 'Afetivo', value: dimensionalData.afetiva.humor },
+    { dimension: 'Autonomia', value: dimensionalData.autonomia.autocontrole },
+    { dimension: 'Social', value: dimensionalData.social.relacionamentos }
   ];
+
+  const trajectoryData = [
+    { session: 'Sessão 1', cognitivo: 12, afetivo: 10, autonomia: 11, social: 13 },
+    { session: 'Sessão 2', cognitivo: 13, afetivo: 12, autonomia: 12, social: 14 },
+    { session: 'Sessão 3', cognitivo: 14, afetivo: 13, autonomia: 13, social: 15 },
+    { session: 'Atual', cognitivo: 15, afetivo: 15, autonomia: 14, social: 16 }
+  ];
+
+  const topologicalData = {
+    nodes: [
+      { id: 'cognitivo', label: 'Cognitivo', group: 1 },
+      { id: 'afetivo', label: 'Afetivo', group: 2 },
+      { id: 'autonomia', label: 'Autonomia', group: 3 },
+      { id: 'social', label: 'Social', group: 4 },
+      // Subnós
+      { id: 'atencao', label: 'Atenção', group: 1 },
+      { id: 'memoria', label: 'Memória', group: 1 },
+      { id: 'ansiedade', label: 'Ansiedade', group: 2 },
+      { id: 'humor', label: 'Humor', group: 2 },
+      { id: 'perspectiva', label: 'Perspectiva Temporal', group: 3 },
+      { id: 'relacionamentos', label: 'Relacionamentos', group: 4 }
+    ],
+    links: [
+      { source: 'cognitivo', target: 'atencao', value: dimensionalData.cognitiva.atencao },
+      { source: 'cognitivo', target: 'memoria', value: dimensionalData.cognitiva.memoria },
+      { source: 'afetivo', target: 'ansiedade', value: dimensionalData.afetiva.ansiedade },
+      { source: 'afetivo', target: 'humor', value: dimensionalData.afetiva.humor },
+      { source: 'autonomia', target: 'perspectiva', value: dimensionalData.autonomia.perspectivaTemporal.media },
+      { source: 'social', target: 'relacionamentos', value: dimensionalData.social.relacionamentos }
+    ]
+  };
 
   return (
     <ModalContainer>
@@ -39,50 +82,46 @@ const DimensionalModal = ({ patientData, onClose }) => {
       </ModalHeader>
       
       <ModalBody>
-        {/* View tabs */}
         <ViewTabs>
           <ViewTab
             active={activeView === 'radar'}
             onClick={() => setActiveView('radar')}
           >
+            <i className="fas fa-spider"></i>
             Radar
           </ViewTab>
           <ViewTab
             active={activeView === 'trajectory'}
             onClick={() => setActiveView('trajectory')}
           >
+            <i className="fas fa-chart-line"></i>
             Trajetória
           </ViewTab>
           <ViewTab
             active={activeView === 'topological'}
             onClick={() => setActiveView('topological')}
           >
+            <i className="fas fa-project-diagram"></i>
             Topológica
           </ViewTab>
         </ViewTabs>
         
-        {/* View container */}
         <ViewContainer>
           {activeView === 'radar' && (
             <ChartContainer>
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart
-                  cx="50%"
-                  cy="50%"
-                  outerRadius="80%"
-                  data={radarData}
-                >
-                  <PolarGrid />
+                <RadarChart data={radarData}>
+                  <PolarGrid gridType="circle" />
                   <PolarAngleAxis dataKey="dimension" />
-                  <PolarRadiusAxis angle={30} domain={[0, 20]} /> {/* Domain adjusted for offset */}
+                  <PolarRadiusAxis angle={30} domain={[0, 20]} />
                   <Radar
-                    name="Análise dimensional"
+                    name="Dimensões"
                     dataKey="value"
-                    stroke="var(--accent)"
-                    fill="var(--accent-light)"
+                    stroke="var(--teal-500)"
+                    fill="var(--teal-200)"
                     fillOpacity={0.6}
                   />
-                  <Tooltip formatter={(value) => [(value - 10).toFixed(1), 'Valor']} /> {/* Revert offset for display */}
+                  <Tooltip />
                   <Legend />
                 </RadarChart>
               </ResponsiveContainer>
@@ -90,19 +129,90 @@ const DimensionalModal = ({ patientData, onClose }) => {
           )}
           
           {activeView === 'trajectory' && (
-            <PlaceholderView>
-              <i className="fas fa-chart-line"></i>
-              <p>Visualização de Trajetória em desenvolvimento.</p>
-            </PlaceholderView>
+            <ChartContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trajectoryData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="session" />
+                  <YAxis domain={[0, 20]} />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="cognitivo" 
+                    stroke="var(--teal-500)" 
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="afetivo" 
+                    stroke="var(--accent)" 
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="autonomia" 
+                    stroke="var(--success)" 
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="social" 
+                    stroke="var(--warning)" 
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           )}
           
           {activeView === 'topological' && (
-            <PlaceholderView>
-              <i className="fas fa-project-diagram"></i>
-              <p>Visualização Topológica em desenvolvimento.</p>
-            </PlaceholderView>
+            <ChartContainer>
+              <TopologicalView>
+                <div className="node-container">
+                  {topologicalData.nodes.map((node, index) => (
+                    <Node 
+                      key={node.id}
+                      style={{
+                        left: `${(index % 5) * 20}%`,
+                        top: `${Math.floor(index / 5) * 25}%`
+                      }}
+                      group={node.group}
+                    >
+                      <NodeLabel>{node.label}</NodeLabel>
+                    </Node>
+                  ))}
+                </div>
+                <svg className="connections">
+                  {topologicalData.links.map((link, index) => {
+                    const sourceNode = topologicalData.nodes.find(n => n.id === link.source);
+                    const targetNode = topologicalData.nodes.find(n => n.id === link.target);
+                    const sourceIndex = topologicalData.nodes.indexOf(sourceNode);
+                    const targetIndex = topologicalData.nodes.indexOf(targetNode);
+                    
+                    return (
+                      <line
+                        key={index}
+                        x1={`${(sourceIndex % 5) * 20 + 10}%`}
+                        y1={`${Math.floor(sourceIndex / 5) * 25 + 10}%`}
+                        x2={`${(targetIndex % 5) * 20 + 10}%`}
+                        y2={`${Math.floor(targetIndex / 5) * 25 + 10}%`}
+                        stroke={`rgba(6, 182, 212, ${link.value / 20})`}
+                        strokeWidth="2"
+                      />
+                    );
+                  })}
+                </svg>
+              </TopologicalView>
+            </ChartContainer>
           )}
         </ViewContainer>
+        
+        <ModalFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </ModalFooter>
       </ModalBody>
     </ModalContainer>
   );
@@ -119,7 +229,7 @@ const ModalContainer = styled.div`
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-xl);
   width: 90%;
-  max-width: 800px;
+  max-width: 1000px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -135,7 +245,6 @@ const ModalHeader = styled.div`
   position: relative;
   flex-shrink: 0;
   
-  /* Wavy bottom border */
   &::after {
     content: "";
     position: absolute;
@@ -150,10 +259,6 @@ const ModalHeader = styled.div`
       rgba(6, 182, 212, 0.2) 80%,
       transparent 100%);
     opacity: 0.3;
-    clip-path: polygon(
-      0% 0%, 10% 40%, 20% 0%, 30% 50%, 40% 10%, 50% 40%, 60% 0%, 70% 50%, 80% 20%, 90% 50%, 100% 0%, 100% 100%, 0% 100%
-    );
-    transform: scaleY(0.7);
   }
 `;
 
@@ -196,13 +301,13 @@ const ModalBody = styled.div`
 const ViewTabs = styled.div`
   display: flex;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
   border-bottom: 1px solid var(--border-color-light);
   padding-bottom: var(--space-2);
 `;
 
 const ViewTab = styled.button`
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
   background: ${props => props.active ? 'var(--teal-700)' : 'none'};
   color: ${props => props.active ? 'white' : 'var(--text-secondary)'};
   border: none;
@@ -211,6 +316,13 @@ const ViewTab = styled.button`
   cursor: pointer;
   transition: all var(--duration-md) var(--ease-gentle);
   font-weight: ${props => props.active ? '500' : 'normal'};
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  
+  i {
+    font-size: 1rem;
+  }
   
   &:hover {
     background-color: ${props => props.active ? 'var(--teal-700)' : 'rgba(255, 255, 255, 0.5)'};
@@ -221,6 +333,10 @@ const ViewTab = styled.button`
 const ViewContainer = styled.div`
   position: relative;
   height: 400px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2));
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  border: 1px solid var(--border-color-light);
 `;
 
 const ChartContainer = styled.div`
@@ -228,23 +344,77 @@ const ChartContainer = styled.div`
   height: 100%;
 `;
 
-const PlaceholderView = styled.div`
+const TopologicalView = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  
+  .node-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .connections {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+`;
+
+const Node = styled.div`
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  color: var(--text-tertiary);
+  background: ${props => {
+    switch(props.group) {
+      case 1: return 'var(--teal-100)';
+      case 2: return 'var(--accent-light)';
+      case 3: return 'var(--success-subtle)';
+      case 4: return 'var(--warning-subtle)';
+      default: return 'var(--gray-100)';
+    }
+  }};
+  border: 2px solid ${props => {
+    switch(props.group) {
+      case 1: return 'var(--teal-500)';
+      case 2: return 'var(--accent)';
+      case 3: return 'var(--success)';
+      case 4: return 'var(--warning)';
+      default: return 'var(--gray-400)';
+    }
+  }};
+  transition: all var(--duration-md) var(--ease-gentle);
+  cursor: pointer;
+  z-index: 2;
   
-  i {
-    font-size: 3rem;
-    margin-bottom: var(--space-4);
-    opacity: 0.4;
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-lg);
   }
-  
-  p {
-    font-size: 1rem;
-  }
+`;
+
+const NodeLabel = styled.div`
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text-primary);
+  max-width: 90%;
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-6);
 `;
 
 export default DimensionalModal;

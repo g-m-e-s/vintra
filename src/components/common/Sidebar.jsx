@@ -78,16 +78,22 @@ const SidebarContainer = styled.div`
   background-color: var(--teal-950);
   display: flex;
   flex-direction: column;
-  transition: width var(--duration-lg) var(--ease-in-out);
+  transition: transform var(--duration-lg) var(--ease-in-out), width var(--duration-lg) var(--ease-in-out);
   overflow: hidden;
-  z-index: 15;
+  z-index: 1000;
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   height: 100vh;
   flex-shrink: 0;
-  
+  transform: translateX(${props => props.expanded ? '0' : '-100%'});
+
+  @media (max-width: 768px) {
+    width: 85%;
+    box-shadow: ${props => props.expanded ? 'var(--shadow-xl)' : 'none'};
+  }
+
   /* Right border */
   &::after {
     content: "";

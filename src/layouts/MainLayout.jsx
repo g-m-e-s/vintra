@@ -67,10 +67,13 @@ const MainContentContainer = styled.div`
   flex: 1;
   height: 100vh;
   overflow: hidden;
-  margin-left: 250px; /* Espaço para a sidebar fixa */
+  margin-left: 250px; /* Espaço para a sidebar fixa em desktop */
+  width: 100%;
   
   @media (max-width: 768px) {
-    margin-left: 0; /* Em mobile, a sidebar fica por cima */
+    margin-left: 0;
+    width: 90%; /* Área de visualização de 90% no mobile */
+    margin: 0 auto; /* Centraliza o conteúdo */
   }
 `;
 
@@ -79,12 +82,14 @@ const ContentArea = styled.main`
   overflow-y: auto;
   background-color: var(--surface-background);
   position: relative;
+  padding: var(--space-4);
   
   /* Adiciona uma borda suave para separação visual */
   border-top: 1px solid var(--border-color-light);
   
-  /* Evita que o conteúdo fique colado nas bordas */
-  padding-bottom: var(--space-4);
+  @media (max-width: 768px) {
+    padding: var(--space-3);
+  }
 `;
 
 export default MainLayout;
