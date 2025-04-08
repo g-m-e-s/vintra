@@ -4,34 +4,38 @@ VINTRA é uma aplicação moderna para análise dimensional clínica, permitindo
 
 ## Sobre o Projeto
 
-VINTRA foi migrado de uma implementação vanilla JavaScript para uma arquitetura React moderna, mantendo suas características visuais e funcionais originais enquanto melhorando sua estrutura, segurança e manutenibilidade.
+VINTRA foi migrado de uma implementação vanilla JavaScript para uma arquitetura moderna com React (frontend) e microserviços backend (Node.js e Python), mantendo suas características visuais e funcionais originais enquanto melhorando sua estrutura, segurança e manutenibilidade.
 
 ### Recursos Principais
 
 - **Análise Dimensional**: Visualização de dados clínicos em múltiplas dimensões
 - **Gravação de Áudio**: Capture sessões de atendimento diretamente na aplicação
-- **Transcrição**: Transforme áudio em texto para análise posterior
+- **Transcrição com IA**: Transforme áudio em texto usando Whisper
+- **Análise com IA**: Processamento utilizando Claude via VertexAI
 - **Documentação Clínica**: Geração automática de diversos formatos de documentação
 - **Biblioteca de Documentos**: Repositório organizado de documentos por paciente
-- **Interface Rica**: Design visual sofisticado com animações fluidas
+- **Banco de Dados de Grafos**: Armazenamento de relações clínicas com Neo4j
+- **Busca Vetorial**: Busca semântica de casos similares com embeddings
 
-## Tecnologias Utilizadas
+## Arquitetura do Sistema
 
-- **React**: Biblioteca core de componentes
-- **React Router**: Gerenciamento de rotas
-- **Styled Components**: Estilização baseada em componentes
-- **Recharts**: Visualização de dados
-- **GSAP**: Animações avançadas
-- **Vite**: Build tool e bundler
+- **Frontend**: React com Vite, Styled Components, e Recharts
+- **Backend Node.js**: Express.js para transcrição de áudio e API principal
+- **Backend Python**: FastAPI para análise dimensional VINTRA e integração com bancos de dados especializados
+- **Bancos de Dados**: 
+  - Neo4j para dados de grafo (relacionamentos entre entidades)
+  - Firestore para dados estruturados
+  - Vertex AI Vector Search para busca semântica
 
 ## Como Iniciar
 
 ### Pré-requisitos
 
-- Node.js (versão 14 ou superior)
-- npm ou yarn
+- Node.js (versão 18 ou superior)
+- Python 3.9+
+- Docker e Docker Compose (recomendado)
 
-### Instalação
+### Instalação com Docker
 
 1. Clone o repositório
    ```bash
@@ -39,103 +43,81 @@ VINTRA foi migrado de uma implementação vanilla JavaScript para uma arquitetur
    cd vintra
    ```
 
-2. Instale as dependências
+2. Configure as variáveis de ambiente
    ```bash
-   npm install
-   # ou
-   yarn
+   cp .env.example .env
+   # Edite o arquivo .env com suas configurações
    ```
 
-3. Inicie o servidor de desenvolvimento
+3. Inicie os serviços com Docker Compose
    ```bash
-   npm run dev
-   # ou
-   yarn dev
+   docker-compose up
    ```
 
-4. Abra [http://localhost:3000](http://localhost:3000) no seu navegador
+4. Acesse os serviços:
+   - Frontend: [http://localhost:3000](http://localhost:3000)
+   - Backend Node.js: [http://localhost:5000](http://localhost:5000)
+   - Backend Python: [http://localhost:8000](http://localhost:8000)
+   - Neo4j Browser: [http://localhost:7474](http://localhost:7474)
 
-### Build para Produção
-
-```bash
-npm run build
-# ou
-yarn build
-```
-
-## Deploy na Vercel
-
-### 1. Configuração do Projeto
-
-1. Fork este repositório
-2. Conecte à sua conta Vercel
-3. Importe o projeto
-
-### 2. Configuração de Variáveis de Ambiente
-
-Configure as seguintes variáveis de ambiente no projeto Vercel:
-
-```bash
-VERTEX_AI_LOCATION=us-central1
-GOOGLE_CLOUD_PROJECT=seu-projeto-id
-GOOGLE_APPLICATION_CREDENTIALS={}  # JSON de credenciais do Google Cloud
-WHISPER_MODEL=small
-WHISPER_LANGUAGE=portuguese
-MAX_AUDIO_SIZE=30
-MAX_PROCESSING_TIME=300
-```
-
-### 3. Configuração do Google Cloud
-
-1. Crie um projeto no Google Cloud
-2. Habilite a API do Vertex AI
-3. Crie uma conta de serviço com as seguintes permissões:
-   - `roles/aiplatform.user`
-   - `roles/storage.objectViewer`
-4. Baixe o arquivo JSON de credenciais
-5. Cole o conteúdo do JSON na variável `GOOGLE_APPLICATION_CREDENTIALS`
-
-### 4. Deploy
-
-A Vercel irá:
-1. Detectar automaticamente que é um projeto Vite
-2. Construir o frontend
-3. Configurar as serverless functions na pasta `/api`
-4. Configurar o roteamento conforme o `vercel.json`
-
-### 5. Verificação
-
-Após o deploy, verifique:
-1. Frontend está acessível
-2. APIs serverless estão respondendo
-3. Integração com VertexAI está funcionando
-4. Processamento de áudio com Whisper está funcionando
-
-## Desenvolvimento Local
+### Instalação Manual
 
 1. Clone o repositório
-2. Instale as dependências:
-```bash
-npm install
-```
+   ```bash
+   git clone https://github.com/seu-usuario/vintra.git
+   cd vintra
+   ```
 
-3. Configure o arquivo `.env.local`:
-```bash
-cp .env.example .env.local
-```
+2. Configure as variáveis de ambiente
+   ```bash
+   cp .env.example .env
+   # Edite o arquivo .env com suas configurações
+   ```
 
-4. Execute o projeto:
-```bash
-npm run dev
-```
+3. Instale todas as dependências
+   ```bash
+   npm run setup
+   ```
+
+4. Inicie os serviços separadamente:
+   - Frontend: `npm run dev`
+   - Backend Node.js: `npm run dev:node`
+   - Backend Python: `npm run dev:python`
+
+### Scripts Disponíveis
+
+- `npm run dev`: Inicia o frontend React
+- `npm run dev:node`: Inicia o backend Node.js
+- `npm run dev:python`: Inicia o backend Python
+- `npm run dev:all`: Inicia todos os serviços via Docker Compose
+- `npm run setup`: Instala todas as dependências (frontend e backends)
+- `npm run build`: Compila o frontend para produção
 
 ## Estrutura do Projeto
 
 ```
-/
-├── api/                # Serverless functions
-├── src/               # Frontend React
-└── public/            # Arquivos estáticos
+/vintra/
+├── frontend/               # Frontend React (atual diretório raiz)
+│   ├── public/
+│   ├── src/
+│   └── package.json
+│
+├── backend-node/           # Backend Express.js
+│   ├── src/
+│   │   ├── api/            # API endpoints
+│   │   └── server.js       # Servidor Express
+│   └── package.json
+│
+├── backend-python/         # Backend FastAPI
+│   ├── app/
+│   │   ├── api/            # API endpoints
+│   │   ├── models/         # Modelos Pydantic
+│   │   └── services/       # Serviços (Claude, Neo4j, etc.)
+│   ├── main.py             # Ponto de entrada FastAPI
+│   └── requirements.txt    # Dependências Python
+│
+├── docker-compose.yml      # Configuração Docker Compose
+└── .env.example            # Exemplo de variáveis de ambiente
 ```
 
 ## Acesso à Aplicação
@@ -147,20 +129,32 @@ Para fins de demonstração, a senha de acesso é `123`.
 - [x] Autenticação básica
 - [x] Dashboard com lista de pacientes
 - [x] Visualização de detalhes de paciente
-- [x] Sistema de modais
-- [x] Notificações toast
+- [x] Sistema de modais e notificações toast
 - [x] Tema claro/escuro
-- [ ] Gravação de áudio
-- [ ] Transcrição de áudio
-- [ ] Processamento de documentos
+- [x] Gravação de áudio (frontend)
+- [x] Transcrição com Whisper
+- [x] Análise dimensional com Claude
+- [x] Integração com bancos de dados
 - [ ] Visualização dimensional completa
+- [ ] Gestão completa de pacientes
 
-## Tecnologias
+## Configuração e Integração de Serviços
 
-- Frontend: React + Vite
-- Estilização: Styled Components
-- Backend: Vercel Serverless
-- ML/AI: Whisper + VertexAI (Claude)
+### Whisper (Transcrição)
+- Implementado via biblioteca @xenova/transformers no backend Node.js
+- Pode ser substituído pela versão Python em produção
+
+### Claude (via VertexAI)
+- Configurado para análise dimensional no backend Python
+- Requer credenciais do Google Cloud
+
+### Neo4j (Banco de Dados de Grafos)
+- Armazena relacionamentos entre pacientes, sessões e estados dimensionais
+- Configurado via variáveis de ambiente
+
+### Vertex Vector Search (Busca Semântica)
+- Implementado para buscar casos clinicamente similares
+- Utiliza embeddings gerados a partir das transcrições
 
 ## Licença
 
