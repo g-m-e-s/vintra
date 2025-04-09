@@ -2,11 +2,14 @@ import axios from 'axios';
 
 // Instância do axios com configurações base
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json'
   }
 });
+
+// Add API URL to console for debugging
+console.log('API URL:', import.meta.env.VITE_API_URL || '/api');
 
 // Tratamento de erros
 const handleAPIError = (error) => {

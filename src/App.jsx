@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useUI } from './hooks/useUI';
@@ -25,7 +25,51 @@ import ModalContainer from './components/modals/ModalContainer';
 
 const App = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const { toasts } = useUI();
+  const { toasts, showToast } = useUI();
+  const [appError, setAppError] = useState(null);
+
+  // Global error boundary
+  useEffect(() => {
+    const handleGlobalError = (event) => {
+      console.error('Global error:', event.error);
+      setAppError(event.error?.message || 'An unexpected error occurred');
+      showToast({
+        type: 'error',
+        message: 'An error occurred. Please try refreshing the page.',
+        duration: 10000
+      });
+      // Prevent the default error handler
+      event.preventDefault();
+    };
+
+    window.addEventListener('error', handleGlobalError);
+    
+    // Check API connectivity
+    const checkApiConnectivity = async () => {
+      try {
+        // We import here to avoid circular dependencies
+        const { vintraApi } = await import('./services/api');
+        const isHealthy = await vintraApi.checkHealth();
+        console.log('API Health Check:', isHealthy ? 'OK' : 'Failed');
+        
+        if (!isHealthy) {
+          showToast({
+            type: 'warning',
+            message: 'API connection issues detected. Some features may not work properly.',
+            duration: 8000
+          });
+        }
+      } catch (error) {
+        console.error('API connectivity check failed:', error);
+      }
+    };
+    
+    checkApiConnectivity();
+
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+    };
+  }, [showToast]);
 
   // Protected route component
   const ProtectedRoute = ({ children }) => {
@@ -38,6 +82,38 @@ const App = () => {
       {/* Global UI Elements */}
       <Toast />
       <ModalContainer />
+      
+      {/* Error display */}
+      {appError && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: '#f44336',
+          color: 'white',
+          padding: '10px 20px',
+          borderRadius: '4px',
+          zIndex: 9999,
+          maxWidth: '80%',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+        }}>
+          <h4>Application Error</h4>
+          <p>{appError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              background: 'white',
+              color: '#f44336',
+              border: 'none',
+              padding: '5px 10px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Reload App
+          </button>
+        </div>
+      )}
 
       {/* Routes */}
       <Routes>

@@ -1,5 +1,15 @@
 {
   "projects": {
-    "default": "vintra-project"
+    "default": "vintra-project",
+    "production": "vintra-project"
+  },
+  "targets": {
+    "vintra-project": {
+      "hosting": {
+        "frontend": [
+          "vintra-project"
+        ]
+      }
+    }
   }
 }

@@ -92,12 +92,6 @@ const Dashboard = () => {
     
     // Force refresh of sidebar by updating a localStorage timestamp
     localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
-    
-    // Force immediate update without waiting for re-render
-    setTimeout(() => {
-      const event = new CustomEvent('patientSelected', { detail: patient });
-      document.dispatchEvent(event);
-    }, 0);
   };
 
   // Handler for clearing patient selection
@@ -108,12 +102,6 @@ const Dashboard = () => {
     
     // Force refresh of sidebar by updating a localStorage timestamp
     localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
-    
-    // Force immediate update without waiting for re-render
-    setTimeout(() => {
-      const event = new CustomEvent('patientDeselected');
-      document.dispatchEvent(event);
-    }, 0);
   };
 
   return (
@@ -172,39 +160,6 @@ const Dashboard = () => {
               <NoAppointmentsMessage>No appointments scheduled for today.</NoAppointmentsMessage>
             )}
           </AgendaPreview>
-          
-          {/* Patient Selection Panel */}
-          <SectionHeader style={{marginTop: '20px'}}>
-            <SectionTitle>Patient Selection</SectionTitle>
-            <StatusLabel>
-              <i className="fas fa-users"></i> Direct Select
-            </StatusLabel>
-          </SectionHeader>
-          
-          <PatientSelectionPanel>
-            {patients.map(patient => (
-              <PatientSelectionItem 
-                key={patient.id}
-                isActive={selectedPatient?.id === patient.id}
-                onClick={() => handlePatientSelect(patient)}
-              >
-                <PatientSelectionAvatar>
-                  {patient.name.charAt(0)}
-                </PatientSelectionAvatar>
-                <PatientSelectionInfo>
-                  <PatientSelectionName>{patient.name}</PatientSelectionName>
-                  <PatientSelectionDetails>{patient.age} years, {patient.gender}</PatientSelectionDetails>
-                </PatientSelectionInfo>
-                <PatientSelectionAction>
-                  {selectedPatient?.id === patient.id ? (
-                    <i className="fas fa-check-circle"></i>
-                  ) : (
-                    <i className="fas fa-user-plus"></i>
-                  )}
-                </PatientSelectionAction>
-              </PatientSelectionItem>
-            ))}
-          </PatientSelectionPanel>
         </AgendaColumn>
 
         {/* Coluna de Informações - À direita */}
@@ -397,6 +352,9 @@ const AppointmentItem = styled.div`
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   cursor: pointer;
   border: 1px solid ${props => props.isActive ? 'var(--accent-light)' : 'transparent'};
+  position: relative; /* Garante posicionamento correto */
+  z-index: 1; /* Evita problemas de sobreposição */
+  pointer-events: auto; /* Força captação de eventos */
   
   &:hover {
     background-color: ${props => props.isActive ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.7)'};
@@ -706,93 +664,5 @@ const EmptyMessage = styled.p`
 `;
 
 
-
-// Componentes adicionais para seleção de pacientes
-const PatientSelectionPanel = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.3));
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border-radius: var(--radius-xl);
-  padding: var(--space-4);
-  margin-bottom: var(--space-8);
-  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color-light);
-  
-  @media (max-width: 768px) {
-    display: none; // Hide on mobile since selection works better in header there
-  }
-`;
-
-const PatientSelectionItem = styled.div`
-  display: flex;
-  align-items: center;
-  padding: var(--space-3);
-  background-color: ${props => props.isActive ? 'rgba(6, 182, 212, 0.1)' : 'rgba(255, 255, 255, 0.5)'};
-  border-radius: var(--radius-lg);
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  cursor: pointer;
-  border: 1px solid ${props => props.isActive ? 'var(--accent-light)' : 'transparent'};
-  
-  &:hover {
-    background-color: ${props => props.isActive ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.7)'};
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-sm);
-  }
-`;
-
-const PatientSelectionAvatar = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  background-color: var(--teal-600);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 1.25rem;
-  color: white;
-  flex-shrink: 0;
-`;
-
-const PatientSelectionInfo = styled.div`
-  flex: 1;
-  margin-left: var(--space-4);
-  min-width: 0;
-`;
-
-const PatientSelectionName = styled.div`
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: var(--space-1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const PatientSelectionDetails = styled.div`
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-`;
-
-const PatientSelectionAction = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${props => props.isActive ? 'var(--teal-600)' : 'var(--text-secondary)'};
-  transition: all var(--duration-md) var(--ease-gentle);
-  flex-shrink: 0;
-  
-  ${PatientSelectionItem}:hover & {
-    color: var(--teal-600);
-    transform: scale(1.2);
-  }
-`;
 
 export default Dashboard;

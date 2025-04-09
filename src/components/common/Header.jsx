@@ -71,6 +71,7 @@ const Header = ({ onMenuClick, isMobile }) => {
 
   // Abrir página de seleção de paciente
   const openPatientSelector = () => {
+    console.log('Navigating to patients page...');
     navigate('/patients');
   };
 
@@ -136,7 +137,10 @@ const Header = ({ onMenuClick, isMobile }) => {
           <i className="fas fa-bars"></i>
         </MobileMenuButton>
         
-        <LogoContainer onClick={() => navigate('/')}>
+        <LogoContainer onClick={() => {
+          console.log('Navigating to home...'); 
+          navigate('/');
+        }}>
           <LogoImage src="/logo.png" alt="VINTRA Logo" />
           <AppTitle>VINTRA</AppTitle>
         </LogoContainer>
@@ -150,12 +154,20 @@ const Header = ({ onMenuClick, isMobile }) => {
                 <PatientInfo>
                   <PatientName>{selectedPatient.name}</PatientName>
                   <PatientActions>
-                    <NewConsultButton onClick={() => navigate('/new-consultation')}>
+                    <NewConsultButton onClick={(e) => {
+                      e.preventDefault();
+                      console.log('Navigating to new consultation...');
+                      navigate('/new-consultation');
+                    }}>
                       <i className="fas fa-plus-circle"></i>
                       {!isMobile && <span>New Consult</span>}
                     </NewConsultButton>
                     
-                    <PatientActionButton onClick={handleClearPatient}>
+                    <PatientActionButton onClick={(e) => {
+                      e.preventDefault();
+                      console.log('Handling clear patient...');
+                      handleClearPatient();
+                    }}>
                       <i className="fas fa-exchange-alt"></i>
                       {!isMobile && <span>Change</span>}
                     </PatientActionButton>
@@ -164,12 +176,16 @@ const Header = ({ onMenuClick, isMobile }) => {
               </SelectedPatientDisplay>
             </SelectedPatientSection>
           ) : (
-            <NoPatientWarning onClick={openPatientSelector}>
-            <i className="fas fa-user-plus"></i>
-            <span>Select a patient</span>
-            <PatientActionButton>
-            <i className="fas fa-chevron-right"></i>
-            </PatientActionButton>
+            <NoPatientWarning onClick={(e) => {
+              e.preventDefault();
+              console.log('Opening patient selector...');
+              openPatientSelector();
+            }}>
+              <i className="fas fa-user-plus"></i>
+              <span>Select a patient</span>
+              <PatientActionButton>
+                <i className="fas fa-chevron-right"></i>
+              </PatientActionButton>
             </NoPatientWarning>
           )}
         </HeaderContent>
@@ -179,7 +195,11 @@ const Header = ({ onMenuClick, isMobile }) => {
           <ActionsSection>
             {/* Botão do espaço multidimensional */}
             <DimensionalButton 
-              onClick={showDimensionalModal}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Opening dimensional space...');
+                showDimensionalModal();
+              }}
               variant="secondary"
               title="Ativar espaço multidimensional"
               data-testid="dimensional-button"
@@ -190,7 +210,11 @@ const Header = ({ onMenuClick, isMobile }) => {
             
             {/* Botão de documentos */}
             <ActionButton
-              onClick={() => navigate('/documentation')}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Navigating to documentation...');
+                navigate('/documentation');
+              }}
               title="Documentação clínica"
               data-testid="docs-button"
             >
@@ -200,7 +224,11 @@ const Header = ({ onMenuClick, isMobile }) => {
             
             {/* Botão de repositório */}
             <ActionButton
-              onClick={() => navigate('/library')}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Navigating to library...');
+                navigate('/library');
+              }}
               title="Repositório de documentos"
               data-testid="repo-button"
             >
@@ -345,6 +373,7 @@ const MobileMenuButton = styled.button`
   padding: var(--space-2);
   border-radius: var(--radius-lg);
   transition: all 0.2s ease;
+  z-index: 10;
   
   &:hover {
     background-color: var(--gray-100);
@@ -360,6 +389,7 @@ const LogoContainer = styled.div`
   gap: var(--space-2);
   cursor: pointer;
   transition: transform 0.2s ease;
+  z-index: 10;
   
   &:hover {
     transform: scale(1.02);

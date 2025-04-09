@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
 import MobileNavBar from '../components/common/MobileNavBar';
+import HealthCheck from '../components/common/HealthCheck';
 
 const MainLayout = ({ children }) => {
   const { currentUser } = useAuth();
@@ -103,6 +104,9 @@ const MainLayout = ({ children }) => {
         sidebarVisible={sidebarVisible} 
         isMobile={isMobile}
       >
+        {/* Health check component to verify API connectivity */}
+        <HealthCheck />
+        
         <Header 
           user={currentUser} 
           onMenuClick={toggleSidebar}
