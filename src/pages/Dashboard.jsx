@@ -88,20 +88,17 @@ const Dashboard = () => {
   const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
     localStorage.setItem('vintra_selected_patient', JSON.stringify(patient));
-    showSuccess('Paciente Selecionado', `${patient.name} selecionado com sucesso. Todas as funcionalidades estão agora disponíveis.`);
+    showSuccess('Patient Selected', `${patient.name} successfully selected. All features are now available.`);
     
     // Force refresh of sidebar by updating a localStorage timestamp
     localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
-    
-    // Navigate to patient detail in a real app
-    // navigate(`/patients/${patient.id}`);
   };
 
   // Handler for clearing patient selection
   const handleClearPatientSelection = () => {
     setSelectedPatient(null);
     localStorage.removeItem('vintra_selected_patient');
-    showSuccess('Seleção Removida', 'A seleção de paciente foi removida.');
+    showSuccess('Selection Removed', 'Patient selection has been removed.');
     
     // Force refresh of sidebar by updating a localStorage timestamp
     localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
@@ -113,8 +110,8 @@ const Dashboard = () => {
         <DashboardTitle>Dashboard</DashboardTitle>
         <DashboardSubtitle>
           {selectedPatient 
-            ? `Bem-vindo! Gerenciando ${selectedPatient.name}` 
-            : 'Bem-vindo! Selecione um paciente no cabeçalho para iniciar'}
+            ? `Welcome! Managing ${selectedPatient.name}` 
+            : 'Welcome! Select a patient in the header to begin'}
         </DashboardSubtitle>
       </DashboardHeader>
       
@@ -124,9 +121,9 @@ const Dashboard = () => {
         {/* Coluna da Agenda - À esquerda */}
         <AgendaColumn>
           <SectionHeader>
-            <SectionTitle>Agenda de Hoje</SectionTitle>
+            <SectionTitle>Today's Schedule</SectionTitle>
             <StatusLabel>
-              <i className="fas fa-calendar-check"></i> {new Date().toLocaleDateString('pt-BR')}
+              <i className="fas fa-calendar-check"></i> {new Date().toLocaleDateString('en-US')}
             </StatusLabel>
           </SectionHeader>
           
@@ -160,7 +157,7 @@ const Dashboard = () => {
                 ))}
               </AppointmentsList>
             ) : (
-              <EmptyMessage>Não há compromissos agendados para hoje.</EmptyMessage>
+              <NoAppointmentsMessage>No appointments scheduled for today.</NoAppointmentsMessage>
             )}
           </AgendaPreview>
         </AgendaColumn>
@@ -170,13 +167,13 @@ const Dashboard = () => {
           {!selectedPatient ? (
             <InfoPanel>
               <SectionHeader>
-                <SectionTitle>Selecione um Paciente</SectionTitle>
+                <SectionTitle>Select a Patient</SectionTitle>
               </SectionHeader>
               
               <InstructionContainer>
                 <i className="fas fa-arrow-up"></i>
                 <InstructionText>
-                  Selecione um paciente no cabeçalho acima para acessar suas informações e funcionalidades.
+                  Select a patient in the header above to access their information and features.
                 </InstructionText>
               </InstructionContainer>
               
@@ -184,22 +181,22 @@ const Dashboard = () => {
                 <StatsCard>
                   <StatsIcon className="fas fa-users" />
                   <StatsValue>{patients.length}</StatsValue>
-                  <StatsLabel>Pacientes Cadastrados</StatsLabel>
+                  <StatsLabel>Registered Patients</StatsLabel>
                 </StatsCard>
                 
                 <StatsCard>
                   <StatsIcon className="fas fa-calendar-alt" />
                   <StatsValue>{appointments.length}</StatsValue>
-                  <StatsLabel>Consultas Hoje</StatsLabel>
+                  <StatsLabel>Today's Appointments</StatsLabel>
                 </StatsCard>
               </StatsPanels>
             </InfoPanel>
           ) : (
             <InfoPanel>
               <SectionHeader>
-                <SectionTitle>Paciente Selecionado</SectionTitle>
+                <SectionTitle>Selected Patient</SectionTitle>
                 <StatusLabel>
-                  <i className="fas fa-user-check"></i> Ativo
+                  <i className="fas fa-user-check"></i> Active
                 </StatusLabel>
               </SectionHeader>
               
@@ -216,10 +213,10 @@ const Dashboard = () => {
                         <i className="fas fa-id-card"></i> ID: {selectedPatient.id}
                       </MetaItem>
                       <MetaItem>
-                        <i className="fas fa-user"></i> {selectedPatient.age} anos, {selectedPatient.gender}
+                        <i className="fas fa-user"></i> {selectedPatient.age} years, {selectedPatient.gender}
                       </MetaItem>
                       <MetaItem>
-                        <i className="fas fa-clock"></i> Última visita: {selectedPatient.lastVisit}
+                        <i className="fas fa-clock"></i> Last visit: {selectedPatient.lastVisit}
                       </MetaItem>
                     </SelectedPatientMeta>
                   </SelectedPatientDetails>
@@ -228,15 +225,15 @@ const Dashboard = () => {
                 <PatientActionLinks>
                   <ActionLink to="/new-document">
                     <i className="fas fa-plus-circle"></i>
-                    Novo Documento
+                    New Document
                   </ActionLink>
                   <ActionLink to="/library">
                     <i className="fas fa-folder-open"></i>
-                    Ver Repositório
+                    View Repository
                   </ActionLink>
                   <ActionButton onClick={handleClearPatientSelection}>
                     <i className="fas fa-exchange-alt"></i>
-                    Trocar Paciente
+                    Change Patient
                   </ActionButton>
                 </PatientActionLinks>
               </SelectedPatientInfo>
@@ -330,7 +327,7 @@ const AgendaPreview = styled.section`
   border-radius: var(--radius-xl);
   padding: var(--space-4);
   margin-bottom: var(--space-8);
-  transition: all var(--duration-md) cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color-light);
   
@@ -352,9 +349,12 @@ const AppointmentItem = styled.div`
   padding: var(--space-3);
   background-color: ${props => props.isActive ? 'rgba(6, 182, 212, 0.1)' : 'rgba(255, 255, 255, 0.5)'};
   border-radius: var(--radius-lg);
-  transition: all var(--duration-md) var(--ease-gentle);
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   cursor: pointer;
   border: 1px solid ${props => props.isActive ? 'var(--accent-light)' : 'transparent'};
+  position: relative; /* Garante posicionamento correto */
+  z-index: 1; /* Evita problemas de sobreposição */
+  pointer-events: auto; /* Força captação de eventos */
   
   &:hover {
     background-color: ${props => props.isActive ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.7)'};

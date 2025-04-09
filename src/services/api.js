@@ -2,11 +2,14 @@ import axios from 'axios';
 
 // Instância do axios com configurações base
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json'
   }
 });
+
+// Add API URL to console for debugging
+console.log('API URL:', import.meta.env.VITE_API_URL || '/api');
 
 // Tratamento de erros
 const handleAPIError = (error) => {
@@ -25,6 +28,26 @@ const handleAPIError = (error) => {
 };
 
 export const vintraApi = {
+  // Authentication
+  login: async (password) => {
+    try {
+      // For development/demo purposes, using a hardcoded password
+      // In production, this should call a secure API endpoint
+      if (password === "vintra2025") {
+        return {
+          user: {
+            name: "VINTRA User",
+            role: "admin"
+          },
+          token: "demo-token-" + Date.now()
+        };
+      }
+      throw new Error("Invalid credentials");
+    } catch (error) {
+      handleAPIError(error);
+    }
+  },
+
   // Upload e processamento de áudio
   uploadAudio: async (file, options = {}) => {
     try {

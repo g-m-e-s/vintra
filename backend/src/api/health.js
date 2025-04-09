@@ -1,6 +1,6 @@
-import { getWhisperModel } from './_models';
-import { errorHandler, logger } from './_utils';
-import { vertexai } from '@google-cloud/vertexai';
+const { getWhisperModel } = require('./_models');
+const { errorHandler, logger } = require('./_utils');
+const { vertexai } = require('@google-cloud/vertexai');
 
 const healthHandler = async (_req, res) => {
   const status = {
@@ -45,4 +45,4 @@ const healthHandler = async (_req, res) => {
   return res.status(statusCode).json(status);
 };
 
-export default errorHandler(healthHandler);
+module.exports = errorHandler(healthHandler);

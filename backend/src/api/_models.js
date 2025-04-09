@@ -1,10 +1,10 @@
-import { pipeline } from '@xenova/transformers';
+const { pipeline } = require('@xenova/transformers');
 
 // Cache global para os modelos
 let whisperModel = null;
 
 // Inicialização otimizada do Whisper
-export const getWhisperModel = async () => {
+const getWhisperModel = async () => {
   if (!whisperModel) {
     whisperModel = await pipeline('automatic-speech-recognition', 'Xenova/whisper-small', {
       quantized: true, // Usar versão quantizada para menor uso de memória
@@ -12,4 +12,8 @@ export const getWhisperModel = async () => {
     });
   }
   return whisperModel;
+};
+
+module.exports = {
+  getWhisperModel
 };

@@ -1,5 +1,5 @@
 // Tratamento padronizado de erros
-export class APIError extends Error {
+class APIError extends Error {
   constructor(message, statusCode = 500, details = {}) {
     super(message);
     this.statusCode = statusCode;
@@ -8,7 +8,7 @@ export class APIError extends Error {
 }
 
 // Wrapper para logs estruturados
-export const logger = {
+const logger = {
   info: (message, data = {}) => {
     console.log(JSON.stringify({
       level: 'info',
@@ -31,7 +31,7 @@ export const logger = {
 };
 
 // Middleware para tratamento de erros
-export const errorHandler = (fn) => async (req, res) => {
+const errorHandler = (fn) => async (req, res) => {
   try {
     await fn(req, res);
   } catch (error) {
@@ -52,4 +52,10 @@ export const errorHandler = (fn) => async (req, res) => {
       message: error.message
     });
   }
+};
+
+module.exports = {
+  APIError,
+  logger,
+  errorHandler
 };

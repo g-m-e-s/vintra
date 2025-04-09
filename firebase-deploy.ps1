@@ -45,15 +45,10 @@ try {
     return
 }
 
-# Initialize Firebase in the project
-Write-Host "Initializing Firebase in your project..." -ForegroundColor Yellow
-try {
-    firebase init hosting functions firestore storage
-    if (-not $?) { throw "Failed to initialize Firebase project" }
-} catch {
-    Write-Host "Failed to initialize Firebase project: $_" -ForegroundColor Red
-    return
-}
+# Firebase should already be initialized - skip initialization
+Write-Host "Using existing Firebase configuration..." -ForegroundColor Yellow
+# NOTE: The line below was removed to prevent recreating the configuration on each deploy
+# firebase init hosting functions firestore storage
 
 # Install project dependencies
 Write-Host "`nInstalling project dependencies..." -ForegroundColor Yellow

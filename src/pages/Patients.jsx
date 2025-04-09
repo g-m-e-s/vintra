@@ -1,31 +1,134 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/common/Button';
+import PatientCard from '../components/patients/PatientCard';
+import { useUI } from '../hooks/useUI';
 
 const Patients = () => {
+  const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const { showSuccess } = useUI();
+  const navigate = useNavigate();
+
+  // Check for stored selected patient
+  useEffect(() => {
+    const storedPatient = localStorage.getItem('vintra_selected_patient');
+    if (storedPatient) {
+      try {
+        setSelectedPatient(JSON.parse(storedPatient));
+      } catch (e) {
+        localStorage.removeItem('vintra_selected_patient');
+      }
+    }
+  }, []);
+
+  // Load patients on component mount
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        setLoading(true);
+        
+        // This would be an API call in a real app
+        // For demo purposes, we'll use mock data
+        const mockPatients = [
+          { id: 'patient-1', name: 'Maria Silva', age: 38, gender: 'Female', lastVisit: '03/28/2025', status: 'In Treatment' },
+          { id: 'patient-2', name: 'João Santos', age: 42, gender: 'Male', lastVisit: '03/25/2025', status: 'First Visit' },
+          { id: 'patient-3', name: 'Ana Oliveira', age: 29, gender: 'Female', lastVisit: '03/20/2025', status: 'In Treatment' },
+          { id: 'patient-4', name: 'Carlos Pereira', age: 55, gender: 'Male', lastVisit: '03/15/2025', status: 'Follow-up' }
+        ];
+        
+        // Simulate API delay
+        setTimeout(() => {
+          setPatients(mockPatients);
+          setFilteredPatients(mockPatients);
+          setLoading(false);
+        }, 500);
+        
+      } catch (error) {
+        console.error('Error fetching patients:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchPatients();
+  }, []);
+
+  // Filter patients based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredPatients(patients);
+      return;
+    }
+
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+    const filtered = patients.filter(patient => 
+      patient.name.toLowerCase().includes(normalizedSearch) || 
+      patient.id.toLowerCase().includes(normalizedSearch)
+    );
+    
+    setFilteredPatients(filtered);
+  }, [searchTerm, patients]);
+
+  // Handler for patient selection
+  const handlePatientSelect = (patient) => {
+    setSelectedPatient(patient);
+    localStorage.setItem('vintra_selected_patient', JSON.stringify(patient));
+    showSuccess('Patient Selected', `${patient.name} has been selected successfully. All functionalities are now available.`);
+    
+    // Force refresh of sidebar by updating a localStorage timestamp
+    localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
+    
+    // Navigate to dashboard to see all features
+    navigate('/');
+  };
   return (
     <PatientsContainer>
       <PageHeader>
-        <PageTitle>Pacientes</PageTitle>
-        <PageSubtitle>Gerencie a lista de seus pacientes.</PageSubtitle>
+        <PageTitle>Patients</PageTitle>
+        <PageSubtitle>Manage your patient list and select a patient to work with.</PageSubtitle>
       </PageHeader>
       
       <SearchContainer>
         <SearchBar>
-          <SearchIcon className="fas fa-search" />
-          <SearchInput
-            type="text"
-            placeholder="Buscar paciente por nome ou ID..."
-          />
-        </SearchBar>
+        <SearchIcon className="fas fa-search" />
+        <SearchInput
+        type="text"
+        placeholder="Search for patients by name or ID..."
+          value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </SearchBar>
       </SearchContainer>
       
-      <ContentPlaceholder>
-        <i className="fas fa-users"></i>
-        <p>Lista de pacientes será carregada aqui.</p>
-        <p>Implementação completa em desenvolvimento.</p>
-      </ContentPlaceholder>
+      {loading ? (
+        <LoadingContainer>
+          <i className="fas fa-spinner fa-spin"></i>
+          <p>Loading patients...</p>
+        </LoadingContainer>
+      ) : filteredPatients.length === 0 ? (
+        <EmptyState>
+          <i className="fas fa-user-slash"></i>
+          <p>No patients found matching your search.</p>
+          <Button onClick={() => setSearchTerm('')} variant="secondary">
+            Clear search
+          </Button>
+        </EmptyState>
+      ) : (
+        <PatientGrid>
+          {filteredPatients.map(patient => (
+            <PatientCard
+              key={patient.id}
+              patient={patient}
+              onSelect={() => handlePatientSelect(patient)}
+              isSelected={selectedPatient?.id === patient.id}
+            />
+          ))}
+        </PatientGrid>
+      )}
     </PatientsContainer>
   );
 };
@@ -92,23 +195,53 @@ const SearchInput = styled.input`
   }
 `;
 
-const ContentPlaceholder = styled.div`
+const PatientGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
+  padding: var(--space-2);
+  
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const LoadingContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: var(--space-16);
   text-align: center;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   
   i {
-    font-size: 4rem;
+    font-size: 2rem;
     margin-bottom: var(--space-4);
-    opacity: 0.3;
   }
   
   p {
-    margin-bottom: var(--space-2);
+    font-size: 1.1rem;
+  }
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  text-align: center;
+  color: var(--text-secondary);
+  
+  i {
+    font-size: 3rem;
+    margin-bottom: var(--space-4);
+    opacity: 0.5;
+  }
+  
+  p {
+    margin-bottom: var(--space-4);
     font-size: 1.1rem;
   }
 `;
