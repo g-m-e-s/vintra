@@ -122,8 +122,6 @@ VINTRA foi migrado de uma implementação vanilla JavaScript para uma arquitetur
 
 ## Acesso à Aplicação
 
-Para fins de demonstração, a senha de acesso é `123`.
-
 ## Funcionalidades Implementadas
 
 - [x] Autenticação básica
