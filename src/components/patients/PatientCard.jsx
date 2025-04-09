@@ -18,18 +18,18 @@ const PatientCard = ({ patient, onSelect, isSelected = false }) => {
         <PatientDetails>
           <PatientName>{name}</PatientName>
           <PatientMeta>
-            {age} anos • {gender}
+            {age} years • {gender}
           </PatientMeta>
         </PatientDetails>
       </CardHeader>
       
       <CardInfo>
         <InfoItem>
-          <InfoLabel>Prontuário:</InfoLabel>
+          <InfoLabel>Record:</InfoLabel>
           <InfoValue>{id.replace('patient-', '')}</InfoValue>
         </InfoItem>
         <InfoItem>
-          <InfoLabel>Última visita:</InfoLabel>
+          <InfoLabel>Last visit:</InfoLabel>
           <InfoValue>{lastVisit}</InfoValue>
         </InfoItem>
         <InfoItem>
@@ -45,10 +45,10 @@ const PatientCard = ({ patient, onSelect, isSelected = false }) => {
       >
         {isSelected ? (
           <>
-            <i className="fas fa-check"></i> Selecionado
+            <i className="fas fa-check"></i> Selected
           </>
         ) : (
-          <>Selecionar</>
+          <>Select</>
         )}
       </Button>
     </CardContainer>

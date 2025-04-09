@@ -94,14 +94,14 @@ const Header = ({ onMenuClick, isMobile }) => {
     };
     setSelectedPatient(patient);
     localStorage.setItem('vintra_selected_patient', JSON.stringify(patient));
-    showSuccess('Paciente Selecionado', `${patient.name} selecionado da agenda.`);
+    showSuccess('Patient Selected', `${patient.name} selected from schedule.`);
     localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
   };
 
   // Ativar espaço multidimensional
   const showDimensionalModal = () => {
     if (!selectedPatient) {
-      showError('Paciente Necessário', 'Selecione um paciente para acessar o espaço multidimensional.');
+      showError('Patient Required', 'Select a patient to access the multidimensional space.');
       return;
     }
     
@@ -124,7 +124,7 @@ const Header = ({ onMenuClick, isMobile }) => {
     setSelectedPatient(null);
     setPatientAgendaVisible(false);
     localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
-    showSuccess('Seleção Removida', 'Seleção de paciente removida.');
+    showSuccess('Selection Removed', 'Patient selection has been removed.');
   };
 
   return (
@@ -152,12 +152,12 @@ const Header = ({ onMenuClick, isMobile }) => {
                   <PatientActions>
                     <NewConsultButton onClick={() => navigate('/new-consultation')}>
                       <i className="fas fa-plus-circle"></i>
-                      {!isMobile && <span>Nova Consulta</span>}
+                      {!isMobile && <span>New Consult</span>}
                     </NewConsultButton>
                     
                     <PatientActionButton onClick={handleClearPatient}>
                       <i className="fas fa-exchange-alt"></i>
-                      {!isMobile && <span>Trocar</span>}
+                      {!isMobile && <span>Change</span>}
                     </PatientActionButton>
                   </PatientActions>
                 </PatientInfo>
@@ -165,11 +165,11 @@ const Header = ({ onMenuClick, isMobile }) => {
             </SelectedPatientSection>
           ) : (
             <NoPatientWarning onClick={openPatientSelector}>
-              <i className="fas fa-user-plus"></i>
-              <span>Selecione um paciente</span>
-              <PatientActionButton>
-                <i className="fas fa-chevron-right"></i>
-              </PatientActionButton>
+            <i className="fas fa-user-plus"></i>
+            <span>Select a patient</span>
+            <PatientActionButton>
+            <i className="fas fa-chevron-right"></i>
+            </PatientActionButton>
             </NoPatientWarning>
           )}
         </HeaderContent>
@@ -185,7 +185,7 @@ const Header = ({ onMenuClick, isMobile }) => {
               data-testid="dimensional-button"
             >
               <i className="fas fa-brain"></i> 
-              {!isMobile && <span>Dimensões</span>}
+              {!isMobile && <span>Dimensions</span>}
             </DimensionalButton>
             
             {/* Botão de documentos */}
@@ -238,7 +238,7 @@ const Header = ({ onMenuClick, isMobile }) => {
         <PatientAgendaBar>
           <AgendaLabel>
             <i className="fas fa-calendar-alt"></i>
-            <span>{isMobile ? "Agenda" : `Agenda de ${selectedPatient.name}`}</span>
+            <span>{isMobile ? "Schedule" : `${selectedPatient.name}'s Schedule`}</span>
           </AgendaLabel>
           
           {hasPatientAppointments ? (
@@ -252,13 +252,13 @@ const Header = ({ onMenuClick, isMobile }) => {
             </AgendaItems>
           ) : (
             <NoAppointmentsMessage>
-              {isMobile ? "Sem agenda" : "Sem consultas agendadas"}
+              {isMobile ? "No schedule" : "No appointments scheduled"}
             </NoAppointmentsMessage>
           )}
           
           <AddAppointmentButton>
             <i className="fas fa-plus"></i>
-            {!isMobile && <span>Agendar</span>}
+            {!isMobile && <span>Schedule</span>}
           </AddAppointmentButton>
         </PatientAgendaBar>
       )}
@@ -268,12 +268,12 @@ const Header = ({ onMenuClick, isMobile }) => {
 
 // Animation keyframes
 const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
 const slideIn = keyframes`
-  from { transform: translateY(-100%); opacity: 0; }
+  from { transform: translateY(-20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 `;
 
@@ -635,7 +635,7 @@ const UserAvatar = styled.div`
   justify-content: center;
   font-weight: 500;
   font-size: 14px;
-  transition: transform var(--duration-md) var(--ease-out);
+  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
   cursor: pointer;
   
   ${UserMenu}:hover & {
