@@ -1,4 +1,39 @@
-﻿{
+{
+  "name": "@vintra/backend",
+  "version": "1.0.0",
+  "description": "VINTRA Backend Functions",
+  "private": true,
+  "type": "module",
+  "exports": "./src/server.js",
+  "main": "lib/index.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development node --watch src/server.js",
+    "start": "cross-env NODE_ENV=production node src/server.js",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "build": "tsc",
+    "deploy": "npm run build && firebase deploy --only functions",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@google-cloud/vertexai": "^1.9.3",
+    "@xenova/transformers": "^2.17.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.11.1",
+    "firebase-functions": "^4.9.0",
+    "formidable": "^3.5.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^18.19.86",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": "18"
+  }
     "name": "@vintra/backend",
     "version": "1.0.0",
     "description": "VINTRA Backend Functions",
