@@ -1,29 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useUI } from '../../hooks/useUI';
 import Button from './Button';
 
-const Header = ({ onMenuClick }) => {
-  const isMobile = window.innerWidth < 768;
+const Header = ({ onMenuClick, isMobile }) => {
   const { currentUser, logout } = useAuth();
-  const { showSuccess, openModal } = useUI();
+  const { showSuccess, openModal, showError } = useUI();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [agendaItems, setAgendaItems] = useState([]);
+  const [patientAgendaVisible, setPatientAgendaVisible] = useState(false);
 
-  // Abrir página de seleção de paciente
-  const openPatientSelector = () => {
-    navigate('/patients');
-  };
+  // Carregar itens simulados da agenda
+  useEffect(() => {
+    // Mock appointments data
+    const mockAppointments = [
+      { id: 'app-1', time: '09:00', patientId: 'patient-1', patientName: 'Maria Silva', type: 'Consulta Regular' },
+      { id: 'app-2', time: '10:30', patientId: 'patient-2', patientName: 'João Santos', type: 'Primeira Consulta' },
+      { id: 'app-3', time: '14:00', patientId: 'patient-4', patientName: 'Carlos Pereira', type: 'Retorno' },
+      { id: 'app-4', time: '16:30', patientId: 'patient-3', patientName: 'Ana Oliveira', type: 'Sessão de Terapia' }
+    ];
+    setAgendaItems(mockAppointments);
+  }, []);
 
+  // Verificar paciente selecionado
   useEffect(() => {
     // Check for selected patient
     const storedPatient = localStorage.getItem('vintra_selected_patient');
     if (storedPatient) {
       try {
         setSelectedPatient(JSON.parse(storedPatient));
+        setPatientAgendaVisible(true); // Mostrar agenda quando paciente selecionado
       } catch (e) {
         localStorage.removeItem('vintra_selected_patient');
       }
@@ -35,11 +45,14 @@ const Header = ({ onMenuClick }) => {
       if (updatedPatient) {
         try {
           setSelectedPatient(JSON.parse(updatedPatient));
+          setPatientAgendaVisible(true); // Mostrar agenda quando paciente selecionado
         } catch (e) {
           setSelectedPatient(null);
+          setPatientAgendaVisible(false);
         }
       } else {
         setSelectedPatient(null);
+        setPatientAgendaVisible(false);
       }
     };
 
@@ -56,56 +69,100 @@ const Header = ({ onMenuClick }) => {
     };
   }, []);
 
+  // Abrir página de seleção de paciente
+  const openPatientSelector = () => {
+    navigate('/patients');
+  };
+
+  // Toggles
   const toggleUserMenu = () => {
     setUserMenuOpen(!userMenuOpen);
   };
 
+  // Handle logout
   const handleLogout = () => {
     logout();
     showSuccess('Logout', 'Você saiu da sua conta.');
     navigate('/login');
   };
 
+  // Seleciona um paciente da agenda
+  const selectPatientFromAgenda = (appointment) => {
+    const patient = {
+      id: appointment.patientId,
+      name: appointment.patientName
+    };
+    setSelectedPatient(patient);
+    localStorage.setItem('vintra_selected_patient', JSON.stringify(patient));
+    showSuccess('Paciente Selecionado', `${patient.name} selecionado da agenda.`);
+    localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
+  };
+
+  // Ativar espaço multidimensional
   const showDimensionalModal = () => {
     if (!selectedPatient) {
-      showSuccess('Paciente Necessário', 'Selecione um paciente para acessar o espaço multidimensional.');
+      showError('Paciente Necessário', 'Selecione um paciente para acessar o espaço multidimensional.');
       return;
     }
     
-    openModal('dimensional', { patientData: null }); // In a real app, would pass patient data
+    openModal('dimensional', { patientData: selectedPatient });
+  };
+
+  // Filtrar agenda para o paciente selecionado
+  const getPatientAppointments = () => {
+    if (!selectedPatient) return [];
+    return agendaItems.filter(app => app.patientId === selectedPatient.id);
+  };
+
+  // Verificar se há consultas para o paciente selecionado
+  const patientAppointments = getPatientAppointments();
+  const hasPatientAppointments = patientAppointments.length > 0;
+
+  // Trocar paciente
+  const handleClearPatient = () => {
+    localStorage.removeItem('vintra_selected_patient');
+    setSelectedPatient(null);
+    setPatientAgendaVisible(false);
+    localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
+    showSuccess('Seleção Removida', 'Seleção de paciente removida.');
   };
 
   return (
-    <HeaderContainer>
-      {/* Botão de menu visível apenas em mobile */}
-      <MobileMenuButton onClick={onMenuClick}>
-        <i className="fas fa-bars"></i>
-      </MobileMenuButton>
-      
-      <LogoContainer>
-        <LogoImage src="/logo.png" alt="VINTRA Logo" />
-        <AppTitle>VINTRA</AppTitle>
-      </LogoContainer>
-      
-      <Nav>
-        {/* Seletor de Paciente Melhorado */}
-        <PatientSelectorContainer>
+    <HeaderWrapper>
+      {/* Header principal */}
+      <HeaderContainer expanded={!isMobile}>
+        {/* Botão de menu (hamburger) */}
+        <MobileMenuButton onClick={onMenuClick} data-testid="mobile-menu-button">
+          <i className="fas fa-bars"></i>
+        </MobileMenuButton>
+        
+        <LogoContainer onClick={() => navigate('/')}>
+          <LogoImage src="/logo.png" alt="VINTRA Logo" />
+          <AppTitle>VINTRA</AppTitle>
+        </LogoContainer>
+        
+        {/* Conteúdo central - Adapta baseado na seleção de paciente */}
+        <HeaderContent>
           {selectedPatient ? (
-            <SelectedPatientDisplay>
-              <PatientAvatar>{selectedPatient.name.charAt(0)}</PatientAvatar>
-              <PatientInfo>
-                <PatientName>{selectedPatient.name}</PatientName>
-                <PatientMeta>ID: {selectedPatient.id.replace('patient-', '')}</PatientMeta>
-              </PatientInfo>
-              <PatientActionButton onClick={() => {
-                localStorage.removeItem('vintra_selected_patient');
-                setSelectedPatient(null);
-                localStorage.setItem('vintra_sidebar_refresh', Date.now().toString());
-              }}>
-                <i className="fas fa-exchange-alt"></i>
-                <span>Trocar</span>
-              </PatientActionButton>
-            </SelectedPatientDisplay>
+            <SelectedPatientSection>
+              <SelectedPatientDisplay>
+                <PatientAvatar>{selectedPatient.name.charAt(0)}</PatientAvatar>
+                <PatientInfo>
+                  <PatientName>{selectedPatient.name}</PatientName>
+                  <PatientActions>
+                    <NewConsultButton onClick={() => navigate('/new-consultation')}>
+                      <i className="fas fa-plus-circle"></i>
+                      {!isMobile && <span>Nova Consulta</span>}
+                    </NewConsultButton>
+                    
+                    <PatientActionButton onClick={handleClearPatient}>
+                      <i className="fas fa-exchange-alt"></i>
+                      {!isMobile && <span>Trocar</span>}
+                    </PatientActionButton>
+                  </PatientActions>
+                </PatientInfo>
+              </SelectedPatientDisplay>
+            </SelectedPatientSection>
           ) : (
             <NoPatientWarning onClick={openPatientSelector}>
               <i className="fas fa-user-plus"></i>
@@ -115,57 +172,133 @@ const Header = ({ onMenuClick }) => {
               </PatientActionButton>
             </NoPatientWarning>
           )}
-        </PatientSelectorContainer>
+        </HeaderContent>
         
-        <DimensionalButton 
-          onClick={showDimensionalModal}
-          variant="secondary"
-          disabled={!selectedPatient}
-          title={!selectedPatient ? "Selecione um paciente primeiro" : "Ativar espaço multidimensional"}
-        >
-          <i className="fas fa-brain btn-icon"></i> 
-          {!isMobile && "Ativar Espaço Multidimensional"}
-        </DimensionalButton>
-      </Nav>
-      
-      <UserMenu>
-        <UserAvatar onClick={toggleUserMenu}>
-          {currentUser?.avatar || currentUser?.name?.charAt(0) || 'U'}
-        </UserAvatar>
-        
-        {userMenuOpen && (
-          <UserDropdown>
-            <UserDropdownItem href="#perfil">
-              <i className="fas fa-user"></i> Meu Perfil
-            </UserDropdownItem>
-            <UserDropdownItem href="#preferencias">
-              <i className="fas fa-cog"></i> Preferências
-            </UserDropdownItem>
-            <UserDropdownDivider />
-            <UserDropdownItem as="button" onClick={handleLogout}>
-              <i className="fas fa-sign-out-alt"></i> Sair
-            </UserDropdownItem>
-          </UserDropdown>
+        {/* Ações específicas - visíveis apenas quando paciente selecionado */}
+        {selectedPatient && (
+          <ActionsSection>
+            {/* Botão do espaço multidimensional */}
+            <DimensionalButton 
+              onClick={showDimensionalModal}
+              variant="secondary"
+              title="Ativar espaço multidimensional"
+              data-testid="dimensional-button"
+            >
+              <i className="fas fa-brain"></i> 
+              {!isMobile && <span>Dimensões</span>}
+            </DimensionalButton>
+            
+            {/* Botão de documentos */}
+            <ActionButton
+              onClick={() => navigate('/documentation')}
+              title="Documentação clínica"
+              data-testid="docs-button"
+            >
+              <i className="fas fa-file-alt"></i>
+              {!isMobile && <span>Docs</span>}
+            </ActionButton>
+            
+            {/* Botão de repositório */}
+            <ActionButton
+              onClick={() => navigate('/library')}
+              title="Repositório de documentos"
+              data-testid="repo-button"
+            >
+              <i className="fas fa-folder-open"></i>
+              {!isMobile && <span>Repo</span>}
+            </ActionButton>
+          </ActionsSection>
         )}
-      </UserMenu>
-    </HeaderContainer>
+        
+        {/* Menu do Usuário */}
+        <UserMenu>
+          <UserAvatar onClick={toggleUserMenu}>
+            {currentUser?.avatar || currentUser?.name?.charAt(0) || 'U'}
+          </UserAvatar>
+          
+          {userMenuOpen && (
+            <UserDropdown>
+              <UserDropdownItem href="#perfil">
+                <i className="fas fa-user"></i> Meu Perfil
+              </UserDropdownItem>
+              <UserDropdownItem href="#preferencias">
+                <i className="fas fa-cog"></i> Preferências
+              </UserDropdownItem>
+              <UserDropdownDivider />
+              <UserDropdownItem as="button" onClick={handleLogout}>
+                <i className="fas fa-sign-out-alt"></i> Sair
+              </UserDropdownItem>
+            </UserDropdown>
+          )}
+        </UserMenu>
+      </HeaderContainer>
+      
+      {/* Agenda integrada ao header quando um paciente está selecionado */}
+      {selectedPatient && (
+        <PatientAgendaBar>
+          <AgendaLabel>
+            <i className="fas fa-calendar-alt"></i>
+            <span>{isMobile ? "Agenda" : `Agenda de ${selectedPatient.name}`}</span>
+          </AgendaLabel>
+          
+          {hasPatientAppointments ? (
+            <AgendaItems>
+              {patientAppointments.map(app => (
+                <AgendaAppointment key={app.id}>
+                  <AppointmentTime>{app.time}</AppointmentTime>
+                  <AppointmentType>{!isMobile && app.type}</AppointmentType>
+                </AgendaAppointment>
+              ))}
+            </AgendaItems>
+          ) : (
+            <NoAppointmentsMessage>
+              {isMobile ? "Sem agenda" : "Sem consultas agendadas"}
+            </NoAppointmentsMessage>
+          )}
+          
+          <AddAppointmentButton>
+            <i className="fas fa-plus"></i>
+            {!isMobile && <span>Agendar</span>}
+          </AddAppointmentButton>
+        </PatientAgendaBar>
+      )}
+    </HeaderWrapper>
   );
 };
 
-const HeaderContainer = styled.header`
-  background: rgba(255, 255, 255, 0.9); /* Aumentado para maior opacidade */
-  backdrop-filter: blur(var(--blur-md));
+// Animation keyframes
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const slideIn = keyframes`
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+`;
+
+const HeaderWrapper = styled.div`
   position: sticky;
   top: 0;
-  z-index: 10;
-  padding: var(--space-3) var(--space-4);
+  z-index: 40;
+  background: transparent;
+  box-shadow: var(--shadow-md);
+`;
+
+const HeaderContainer = styled.header`
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(var(--blur-md));
+  padding: var(--space-3);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background var(--duration-lg) var(--ease-gentle);
+  transition: all 0.3s ease;
   border-bottom: 1px solid var(--border-color-light);
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
+  height: ${props => props.expanded ? '70px' : '60px'};
+  gap: var(--space-2);
+  position: relative;
   
   &::after {
     content: "";
@@ -185,39 +318,61 @@ const HeaderContainer = styled.header`
       0% 0%, 5% 20%, 15% 10%, 25% 30%, 35% 0%, 45% 20%, 55% 5%, 65% 25%, 75% 10%, 85% 30%, 95% 5%, 100% 20%, 100% 100%, 0% 100%
     );
   }
+  
+  @media (max-width: 768px) {
+    padding: var(--space-2);
+  }
+`;
+
+const HeaderContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: 1;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    gap: var(--space-2);
+  }
 `;
 
 const MobileMenuButton = styled.button`
-  display: none;
   background: none;
   border: none;
   font-size: 1.25rem;
   color: var(--text-primary);
   cursor: pointer;
   padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
   
-  /* Sempre visível em mobile, nunca em desktop */
-  display: none;
-  @media (max-width: 768px) {
-    display: block;
+  &:hover {
+    background-color: var(--gray-100);
   }
+  
+  /* Sempre visível */
+  display: block;
 `;
 
 const LogoContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  margin-right: auto;
+  gap: var(--space-2);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.02);
+  }
+  
+  @media (max-width: 768px) {
+    display: none; /* Oculta em mobile para economizar espaço */
+  }
 `;
 
 const LogoImage = styled.img`
   height: 28px;
   width: auto;
-  transition: transform var(--duration-md) var(--ease-out);
-  
-  ${LogoContainer}:hover & {
-    transform: scale(1.05);
-  }
 `;
 
 const AppTitle = styled.h1`
@@ -226,21 +381,24 @@ const AppTitle = styled.h1`
   color: var(--text-primary);
   letter-spacing: -0.03em;
   font-family: var(--font-heading);
-`;
-
-const Nav = styled.nav`
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
   
   @media (max-width: 768px) {
-    display: none;
+    font-size: 1rem;
   }
 `;
 
-const PatientSelectorContainer = styled.div`
+// Seção de paciente selecionado
+const SelectedPatientSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
   flex: 1;
-  max-width: 500px;
+  animation: ${slideIn} 0.3s ease;
+  
+  @media (max-width: 768px) {
+    gap: var(--space-2);
+  }
 `;
 
 const SelectedPatientDisplay = styled.div`
@@ -253,9 +411,17 @@ const SelectedPatientDisplay = styled.div`
   border: 1px solid var(--teal-300);
   box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.15);
   transition: all var(--duration-md) var(--ease-gentle);
+  flex-shrink: 0;
+  min-width: 0;
   
   &:hover {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.5));
+    transform: translateY(-2px);
+  }
+  
+  @media (max-width: 768px) {
+    padding: var(--space-1) var(--space-2);
+    gap: var(--space-2);
   }
 `;
 
@@ -270,10 +436,24 @@ const PatientAvatar = styled.div`
   font-weight: 500;
   color: var(--text-on-dark);
   flex-shrink: 0;
+  
+  @media (max-width: 768px) {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
 `;
 
 const PatientInfo = styled.div`
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  
+  @media (max-width: 768px) {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
 `;
 
 const PatientName = styled.div`
@@ -283,11 +463,22 @@ const PatientName = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 150px;
+  
+  @media (max-width: 768px) {
+    max-width: 80px;
+    font-size: 0.75rem;
+  }
 `;
 
-const PatientMeta = styled.div`
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
+const PatientActions = styled.div`
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  
+  @media (max-width: 768px) {
+    margin-top: 0;
+  }
 `;
 
 const NoPatientWarning = styled.div`
@@ -306,6 +497,16 @@ const NoPatientWarning = styled.div`
   &:hover {
     background: var(--warning-subtle-hover, #fff8e5);
     border-color: var(--warning-vivid);
+    transform: translateY(-2px);
+  }
+  
+  @media (max-width: 768px) {
+    padding: var(--space-1) var(--space-2);
+    font-size: 0.75rem;
+    
+    span {
+      display: none;
+    }
   }
 `;
 
@@ -320,17 +521,51 @@ const PatientActionButton = styled.button`
   font-size: 0.75rem;
   color: var(--teal-700);
   cursor: pointer;
-  margin-left: auto;
   transition: all var(--duration-md) var(--ease-gentle);
   
   &:hover {
     background: rgba(6, 182, 212, 0.2);
+    transform: translateY(-1px);
   }
   
-  span {
-    @media (max-width: 768px) {
-      display: none;
-    }
+  @media (max-width: 768px) {
+    padding: var(--space-1);
+  }
+`;
+
+// Ações na barra de navegação
+const ActionsSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  
+  @media (max-width: 768px) {
+    gap: var(--space-1);
+  }
+`;
+
+const NewConsultButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--teal-500);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-md) var(--ease-gentle);
+  
+  &:hover {
+    background: var(--teal-600);
+    transform: translateY(-1px);
+  }
+  
+  @media (max-width: 768px) {
+    padding: var(--space-1);
   }
 `;
 
@@ -338,9 +573,39 @@ const DimensionalButton = styled(Button)`
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  font-size: 0.875rem;
+  padding: var(--space-1) var(--space-3);
+  height: 32px;
   
-  i {
-    font-size: 0.875em;
+  @media (max-width: 768px) {
+    padding: var(--space-1);
+    min-width: auto;
+  }
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--duration-md) var(--ease-gentle);
+  height: 32px;
+  
+  &:hover {
+    background: var(--gray-200);
+    transform: translateY(-1px);
+    color: var(--text-primary);
+  }
+  
+  @media (max-width: 768px) {
+    padding: var(--space-1);
+    min-width: auto;
   }
 `;
 
@@ -349,10 +614,10 @@ const UserMenu = styled.div`
   align-items: center;
   gap: var(--space-2);
   position: relative;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1);
   border-radius: var(--radius-lg);
   transition: all var(--duration-md) var(--ease-gentle);
-  margin-left: var(--space-4);
+  margin-left: var(--space-2);
   
   &:hover {
     background: var(--gray-100);
@@ -376,6 +641,12 @@ const UserAvatar = styled.div`
   ${UserMenu}:hover & {
     transform: scale(1.05);
   }
+  
+  @media (max-width: 768px) {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
 `;
 
 const UserDropdown = styled.div`
@@ -390,19 +661,8 @@ const UserDropdown = styled.div`
   z-index: 100;
   overflow: hidden;
   transform-origin: top right;
-  animation: dropdownAppear var(--duration-md) var(--ease-out) forwards;
+  animation: ${fadeIn} 0.3s ease forwards;
   padding: var(--space-2) 0;
-  
-  @keyframes dropdownAppear {
-    from {
-      opacity: 0;
-      transform: scale(0.95) translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
 `;
 
 const UserDropdownItem = styled.a`
@@ -444,6 +704,150 @@ const UserDropdownDivider = styled.div`
   );
   margin: var(--space-1) 0;
   opacity: 0.6;
+`;
+
+// Barra de agenda do paciente
+const PatientAgendaBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
+  border-bottom: 1px solid var(--teal-200);
+  animation: ${slideIn} 0.3s ease;
+  position: relative;
+  
+  @media (max-width: 768px) {
+    padding: var(--space-2);
+    gap: var(--space-2);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+`;
+
+const AgendaToggleButton = styled.button`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--teal-300);
+  color: var(--teal-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: scale(1.05);
+  }
+`;
+
+const AgendaLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--teal-700);
+  font-weight: 500;
+  font-size: 0.875rem;
+  
+  @media (max-width: 768px) {
+    font-size: 0.75rem;
+  }
+`;
+
+const AgendaItems = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 0 var(--space-2);
+  scrollbar-width: none;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Melhoria de UX com snap scroll */
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  
+  @media (max-width: 768px) {
+    flex: 1;
+    padding: 0;
+  }
+`;
+
+const AgendaAppointment = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--teal-200);
+  transition: all var(--duration-md) var(--ease-gentle);
+  cursor: pointer;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+  }
+`;
+
+const AppointmentTime = styled.div`
+  font-weight: 600;
+  color: var(--teal-700);
+  font-size: 0.875rem;
+`;
+
+const AppointmentType = styled.div`
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+`;
+
+const NoAppointmentsMessage = styled.div`
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-style: italic;
+  flex: 1;
+`;
+
+const AddAppointmentButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--teal-50);
+  color: var(--teal-700);
+  border: 1px solid var(--teal-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--duration-md) var(--ease-gentle);
+  
+  &:hover {
+    background: var(--teal-100);
+    transform: translateY(-1px);
+  }
+  
+  @media (max-width: 768px) {
+    padding: var(--space-1) var(--space-2);
+    font-size: 0.75rem;
+    
+    span {
+      display: none;
+    }
+  }
 `;
 
 export default Header;
