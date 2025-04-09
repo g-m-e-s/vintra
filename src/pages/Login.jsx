@@ -17,7 +17,7 @@ const Login = () => {
     setError('');
     
     if (!password) {
-      setError('Por favor, digite a senha de acesso.');
+      setError('Please enter the access password.');
       return;
     }
 
@@ -25,14 +25,14 @@ const Login = () => {
       const success = await login(password);
       
       if (success) {
-        showSuccess('Login Bem-sucedido', 'Bem-vindo ao VINTRA!');
+        showSuccess('Login Successful', 'Welcome to VINTRA!');
         navigate('/');
       } else {
-        setError('Senha incorreta. Por favor, tente novamente.');
+        setError('Incorrect password. Please try again.');
         animateErrorShake();
       }
     } catch (err) {
-      setError(err.message || 'Erro ao efetuar login. Por favor, tente novamente.');
+      setError(err.message || 'Login error. Please try again.');
       animateErrorShake();
     }
   };
@@ -51,15 +51,15 @@ const Login = () => {
     <LoginContainer>
       <Logo src="/logo.png" alt="VINTRA Logo" />
       <LoginHeading>VINTRA</LoginHeading>
-      <LoginSubheading>Análise Dimensional Clínica</LoginSubheading>
+      <LoginSubheading>Clinical Dimensional Analysis</LoginSubheading>
       
       <LoginForm id="loginForm" onSubmit={handleSubmit}>
         <FormGroup>
-          <FormLabel htmlFor="password">Senha de Acesso</FormLabel>
+          <FormLabel htmlFor="password">Access Password</FormLabel>
           <FormInput
             type="password"
             id="password"
-            placeholder="Digite sua senha de acesso"
+            placeholder="Enter your access password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
@@ -73,7 +73,7 @@ const Login = () => {
           fullWidth 
           disabled={loading}
         >
-          {loading ? 'Entrando...' : 'Entrar'}
+          {loading ? 'Logging in...' : 'Enter'}
         </Button>
       </LoginForm>
     </LoginContainer>

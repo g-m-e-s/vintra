@@ -25,6 +25,26 @@ const handleAPIError = (error) => {
 };
 
 export const vintraApi = {
+  // Authentication
+  login: async (password) => {
+    try {
+      // For development/demo purposes, using a hardcoded password
+      // In production, this should call a secure API endpoint
+      if (password === "vintra2025") {
+        return {
+          user: {
+            name: "VINTRA User",
+            role: "admin"
+          },
+          token: "demo-token-" + Date.now()
+        };
+      }
+      throw new Error("Invalid credentials");
+    } catch (error) {
+      handleAPIError(error);
+    }
+  },
+
   // Upload e processamento de áudio
   uploadAudio: async (file, options = {}) => {
     try {
