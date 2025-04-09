@@ -1,7 +1,15 @@
+<<<<<<< HEAD
 ﻿const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
+=======
+import express from 'express';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import dotenv from 'dotenv';
+>>>>>>> parent of ea861c8 (commit to deploy)
 
 // Handlers
 const transcribeHandler = require('./api/transcribe');
@@ -32,5 +40,10 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
+<<<<<<< HEAD
 // Export for Firebase Functions
 module.exports = app;
+=======
+// Para deploy na Vercel
+export default app;
+>>>>>>> parent of ea861c8 (commit to deploy)
