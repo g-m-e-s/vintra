@@ -10,7 +10,7 @@ VINTRA foi migrado de uma implementação vanilla JavaScript para uma arquitetur
 
 - **Análise Dimensional**: Visualização de dados clínicos em múltiplas dimensões
 - **Gravação de Áudio**: Capture sessões de atendimento diretamente na aplicação
-- **Transcrição com IA**: Transforme áudio em texto usando Whisper
+- **Transcrição com IA**: Transforme áudio em texto usando Google Cloud Speech-to-Text
 - **Análise com IA**: Processamento utilizando Claude via VertexAI
 - **Documentação Clínica**: Geração automática de diversos formatos de documentação
 - **Biblioteca de Documentos**: Repositório organizado de documentos por paciente

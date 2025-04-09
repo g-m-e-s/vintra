@@ -9,15 +9,9 @@ import transcribeHandler from './api/transcribe.js';
 import processHandler from './api/process.js';
 import healthHandler from './api/health.js';
 import statusHandler from './api/status.js';
-import transcribeHandler from './api/transcribe.js';
-import processHandler from './api/process.js';
-import healthHandler from './api/health.js';
-import statusHandler from './api/status.js';
 
 // Config
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-dotenv.config({ path: join(__dirname, '../../.env') });
+dotenv.config({ path: join(dirname(fileURLToPath(import.meta.url)), '../../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,10 +28,11 @@ app.get('/api/health', healthHandler);
 
 // Local development server
 if (process.env.NODE_ENV !== 'production') {
-  // Firebase Functions handle the listening => {
+  app.listen(PORT, () => {
     console.log(`Development server running on port ${PORT}`);
   });
 }
 
-// Para deploy na Vercel
-module.exports = app;
+// Export for both Firebase Functions and ES modules
+export default app;
+export const api = app;

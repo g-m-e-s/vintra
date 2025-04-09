@@ -39,11 +39,15 @@ O VINTRA é composto por três componentes principais:
 
 ### Configurando Credenciais
 
-1. **Google Cloud / VertexAI**
+1. **Google Cloud / VertexAI e Speech-to-Text**
    - Crie um projeto no Google Cloud: https://console.cloud.google.com/
-   - Habilite a API do Vertex AI
+   - Habilite as seguintes APIs:
+     - Vertex AI API
+     - Cloud Speech-to-Text API
+     - Cloud Storage API (para armazenamento temporário de áudio)
    - Crie uma conta de serviço com as seguintes permissões:
      - `roles/aiplatform.user`
+     - `roles/speech.client`
      - `roles/storage.objectViewer`
    - Baixe o arquivo JSON de credenciais e salve como `google-credentials.json` na raiz do projeto
 
@@ -51,6 +55,21 @@ O VINTRA é composto por três componentes principais:
    - Instale o Neo4j Desktop: https://neo4j.com/download/
    - Crie um novo banco de dados local
    - Configure usuário e senha no arquivo `.env`
+
+### Serviços Google Cloud
+
+#### Speech-to-Text
+- **Modelo**: medical_conversation (otimizado para transcrição médica)
+- **Recursos**:
+  * Diarização automática de falantes
+  * Reconhecimento de vocabulário médico
+  * Pontuação e formatação automática
+  * Detecção de pausas e entonação
+
+#### Vertex AI
+- **Modelos**:
+  * Claude-3-sonnet para análise dimensional
+  * Embedding model para busca semântica
 
 ### Variáveis de Ambiente
 
@@ -89,12 +108,22 @@ LOCAL_DEVELOPMENT=true
 
 ## Fluxo de Trabalho para Desenvolvimento
 
-### Gravação e Transcriação de Áudio
+### Gravação e Transcrição de Áudio
 
 1. Usuário grava áudio na interface React
 2. Frontend envia o blob de áudio para o backend Node.js (`/api/transcribe`)
-3. Backend Node.js processa o áudio com Whisper
-4. O resultado da transcrição é retornado ao frontend
+3. Backend Node.js processa o áudio com Google Cloud Speech-to-Text
+4. Speech-to-Text realiza:
+   - Transcrição do áudio para texto
+   - Diarização de falantes (identificação médico/paciente)
+   - Reconhecimento otimizado para vocabulário médico
+5. O resultado da transcrição é retornado ao frontend
+
+#### Gravação e Transcrição
+1. Frontend captura áudio em formato WebM OPUS
+2. Backend Node.js envia para Speech-to-Text
+3. Resposta processada e diarizada
+4. Resultado enviado para análise dimensional
 
 ### Análise Dimensional VINTRA
 

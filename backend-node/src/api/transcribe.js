@@ -1,15 +1,19 @@
-import { getWhisperModel } from './_models';
 import { errorHandler, logger, APIError } from './_utils';
-import { validateAudioFile, parseFormData } from './_validation';
+import { parseFormData } from './_validation';
 import { storeAudioFile, deleteAudioFile } from './storage';
 import { updateStatus } from './status';
 import { vertexai } from '@google-cloud/vertexai';
+import { SpeechClient } from '@google-cloud/speech';
+import fs from 'fs';
 import axios from 'axios';
 
 // Configuração do VertexAI
 const location = process.env.VERTEX_AI_LOCATION || 'us-central1';
 const project = process.env.GOOGLE_CLOUD_PROJECT;
 const vertex = new vertexai({project, location});
+
+// Inicializar Speech-to-Text client
+const speechClient = new SpeechClient();
 
 // URL do backend Python
 const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:8000';
@@ -28,26 +32,36 @@ const transcribeHandler = async (req, res) => {
     logger.info('Starting audio processing', { consultationId });
     updateStatus(consultationId, { status: 'initializing', progress: 0 });
 
-    // Validate and get audio stream
-    const audioStream = await validateAudioFile(audioFile);
+    // Configurar requisição para Speech-to-Text
+    const audioBytes = fs.readFileSync(audioFile.filepath).toString('base64');
+
+    const request = {
+      audio: {
+        content: audioBytes,
+      },
+      config: {
+        encoding: 'WEBM_OPUS',
+        sampleRateHertz: parseInt(process.env.SPEECH_SAMPLE_RATE || '48000'),
+        languageCode: process.env.SPEECH_LANGUAGE || 'pt-BR',
+        enableSpeakerDiarization: true,
+        diarizationSpeakerCount: 2,
+        model: process.env.SPEECH_RECOGNITION_MODEL || 'medical_conversation',
+      },
+    };
+
     updateStatus(consultationId, { status: 'audio_processing', progress: 20 });
 
-    // Transcrição com Whisper
-    const whisper = await getWhisperModel();
-    const transcriptionResult = await whisper(audioStream, {
-      task: 'transcribe',
-      language: process.env.WHISPER_LANGUAGE || 'portuguese',
-      return_timestamps: true
-    });
+    // Realizar transcrição com Speaker Diarization
+    const [response] = await speechClient.recognize(request);
     updateStatus(consultationId, { status: 'transcribing', progress: 50 });
 
-    // Diarização
-    const diarizedText = await processDiarization(transcriptionResult);
+    // Processar resultado da diarização
+    const diarizedText = processDiarization(response);
     updateStatus(consultationId, { status: 'diarizing', progress: 70 });
 
-    // Processamento inicial com Claude
+    // Processamento inicial com Claude se solicitado
     if (options.autoProcess) {
-      // Verifica se deve usar o backend Python para análise VINTRA
+      // Verificar se deve usar o backend Python para análise VINTRA
       if (options.useVintraAnalysis && options.format === 'vintra') {
         try {
           // Chama o backend Python para análise VINTRA
@@ -71,6 +85,7 @@ const transcribeHandler = async (req, res) => {
           });
         } catch (pythonError) {
           logger.error('Error calling Python backend for VINTRA analysis', pythonError);
+          
           // Fallback para análise com Claude diretamente
           logger.info('Falling back to Claude for analysis');
         }
@@ -131,29 +146,52 @@ const transcribeHandler = async (req, res) => {
   }
 };
 
-export default errorHandler(transcribeHandler);
+// Helper para processar resultado da diarização do Speech-to-Text
+const processDiarization = (response) => {
+  const result = response.results[response.results.length - 1];
+  const wordsInfo = result.alternatives[0].words;
 
-// Helpers mantidos do código anterior
-const processDiarization = async (transcriptionResult) => {
-  const segments = transcriptionResult.segments || [];
-  return segments.map(segment => ({
-    speaker: detectSpeaker(segment.text),
-    text: segment.text,
-    start: segment.start,
-    end: segment.end
-  }));
-};
+  // Agrupar palavras por speaker tag
+  let currentSpeaker = null;
+  let currentText = [];
+  const segments = [];
 
-const detectSpeaker = (text) => {
-  const lowerText = text.toLowerCase();
-  if (lowerText.startsWith('dr:') || lowerText.startsWith('doutor:')) {
-    return 'doctor';
-  } else if (lowerText.startsWith('p:') || lowerText.startsWith('paciente:')) {
-    return 'patient';
+  wordsInfo.forEach((wordInfo) => {
+    if (currentSpeaker === null) {
+      currentSpeaker = wordInfo.speakerTag;
+    }
+
+    if (wordInfo.speakerTag !== currentSpeaker) {
+      // Novo falante detectado, criar novo segmento
+      segments.push({
+        speaker: getSpeakerLabel(currentSpeaker),
+        text: currentText.join(' '),
+      });
+      currentText = [];
+      currentSpeaker = wordInfo.speakerTag;
+    }
+
+    currentText.push(wordInfo.word);
+  });
+
+  // Adicionar último segmento
+  if (currentText.length > 0) {
+    segments.push({
+      speaker: getSpeakerLabel(currentSpeaker),
+      text: currentText.join(' '),
+    });
   }
-  return 'unknown';
+
+  return segments;
 };
 
+// Helper para identificar falantes
+const getSpeakerLabel = (speakerTag) => {
+  // Como configuramos 2 falantes, assumimos que tag 1 é médico e tag 2 é paciente
+  return speakerTag === 1 ? 'doctor' : 'patient';
+};
+
+// Helper para gerar prompt para Claude
 const generatePrompt = (diarizedText, options) => {
   const basePrompt = `Você é um assistente especializado em documentação médica.
 Analise a seguinte transcrição de consulta médica e gere a documentação solicitada.
@@ -185,3 +223,5 @@ Gere uma análise geral da consulta, incluindo:
 3. Recomendações e tratamentos propostos
 4. Elementos importantes da interação médico-paciente`;
 };
+
+export default errorHandler(transcribeHandler);
